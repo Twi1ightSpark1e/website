@@ -1,14 +1,12 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Twi1ightSpark1e/website/handlers"
 	"github.com/Twi1ightSpark1e/website/template"
-
-	"unit.nginx.org/go"
 )
-
 
 func main() {
 	template.Initialize()
@@ -18,6 +16,6 @@ func main() {
 	http.HandleFunc("/packages/", handlers.FileindexHandler)
 	http.HandleFunc("/", handlers.RootHandler)
 
-	unit.ListenAndServe(":8081", nil)
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
