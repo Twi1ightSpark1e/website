@@ -1,7 +1,7 @@
 <html>
 
 <head>
-    <title>TwilyName files</title>
+    <title>{{.Title}}</title>
     <!-- Required meta tags -->
     <meta charset="utf-8"></meta>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"></meta>
@@ -26,28 +26,28 @@
         </nav>
         <!-- Files table -->
         {{if .Error}}
-        <h4 class="text-light text-center">{{.Error}}</h4>
+           <h4 class="text-light text-center">{{.Error}}</h4>
         {{else if .List}}
-        <table class="table table-sm table-hover table-dark">
-            <thead>
-                <tr>
-                    <th scope="col">name</th>
-                    <th scope="col">size</th>
-                    <th scope="col">date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{range .List}}
-                <tr class="filetable-entry">
-                    <td>
-                        <a href="{{.Name}}" class="text-light">{{if .IsDir}}<img class="mr-2 directory-icon"/>{{else}}<img class="mr-2 file-icon"/>{{end}}{{.Name}}</a>
-                    </td>
-                    <td>{{.Size}}</td>
-                    <td>{{.Date}}</td>
-                </tr>
-                {{end}}
-            </tbody>
-        </table>
+            <table class="table table-striped table-sm table-hover table-dark">
+                <thead>
+                    <tr>
+                        <th scope="col">name</th>
+                        <th scope="col">size</th>
+                        <th scope="col">date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .List}}
+                    <tr class="filetable-entry">
+                        <td>
+                            <a href="{{.Name}}" class="text-light">{{if .IsDir}}<img class="mr-2 directory-icon"/>{{else}}<img class="mr-2 file-icon"/>{{end}}{{.Name}}</a>
+                        </td>
+                        <td>{{.Size}}</td>
+                        <td>{{.Date}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
         {{end}}
     </div>
 </body>

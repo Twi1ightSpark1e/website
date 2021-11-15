@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+
+	"github.com/Twi1ightSpark1e/website/util"
 )
 
 var templates map[string]*template.Template
@@ -13,7 +15,7 @@ var templates map[string]*template.Template
 func Initialize() {
 	templates = make(map[string]*template.Template)
 
-	basePath := "template/"
+	basePath := util.BasePath("template/")
 	files, err := ioutil.ReadDir(basePath)
 	if err != nil {
 		log.Fatal(err)

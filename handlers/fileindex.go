@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/Twi1ightSpark1e/website/template"
@@ -46,12 +47,8 @@ type fileEntry struct {
 	IsDir bool
 }
 
-type breadcrumbItem struct {
-	Title string
-	Address string
-}
-
 type fileindexPage struct {
+	Title string
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string
 	List []fileEntry
@@ -61,22 +58,22 @@ type fileindexPage struct {
 func FileindexHandler(w http.ResponseWriter, r *http.Request) {
 	breadcrumb := prepareBreadcrum(r)
 	tplData := fileindexPage {
+		Title: prepareTitle(r),
 		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
 
 	upload, err := shouldUploadFile(r)
 	if err != nil {
-		tplData.Error = err.Error()
+		w.WriteHeader(http.StatusNotFound)
+		tplData.Error = "Content not found"
 	} else if upload {
-		err = uploadFile(w, r, tplData.LastBreadcrumb)
-		if err == nil {
-			return
-		}
-		tplData.Error = err.Error()
+		http.ServeFile(w, r, r.URL.Path)
+		return
 	} else {
 		list, err := prepareFileList(r)
 		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
 			tplData.Error = err.Error()
 		} else {
 			tplData.List = list
@@ -89,41 +86,15 @@ func FileindexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func prepareBreadcrum(req *http.Request) []breadcrumbItem {
-	result := []breadcrumbItem {
-		{
-			Title: req.Host,
-			Address: "/",
-		},
-	}
-
-	items := filterStr(strings.Split(req.URL.Path, "/"), func (item *string) bool {
-		return len(*item) != 0
-	})
-	for idx, item := range items {
-		if len(item) == 0 {
-			continue
-		}
-
-		address := fmt.Sprintf("/%s", strings.Join(items[:idx + 1], "/"))
-		result = append(result, breadcrumbItem {
-			Title: item,
-			Address: address,
-		})
-	}
-
-	return result
-}
-
 func prepareFileList(req *http.Request) ([]fileEntry, error) {
 	result := make([]fileEntry, 0)
 
 	_, filename := path.Split(req.URL.Path)
 	if filename == "noindex" {
-		return result, errors.New("You are not allowed to view this folder")
+		return result, errors.New("Content not found")
 	}
 
-	files, err := ioutil.ReadDir(fmt.Sprintf("..%c%s", os.PathSeparator, req.URL.Path))
+	files, err := ioutil.ReadDir(fmt.Sprintf("/%s", req.URL.Path))
 	if err != nil {
 		return result, err
 	}
@@ -152,12 +123,19 @@ func prepareFileList(req *http.Request) ([]fileEntry, error) {
 	err = nil
 	if len(result) == 0 {
 		err = errors.New("This folder is empty")
+	} else {
+		sort.SliceStable(result, func(i, j int) bool {
+			if result[i].IsDir && !result[j].IsDir {
+				return true
+			}
+			return strings.ToLower(result[i].Name) < strings.ToLower(result[j].Name)
+		})
 	}
 	return result, err
 }
 
 func shouldUploadFile(req *http.Request) (bool, error) {
-	stat, err := os.Stat(fmt.Sprintf("..%c%s", os.PathSeparator, req.URL.Path))
+	stat, err := os.Stat(req.URL.Path)
 	if err != nil {
 		return false, err
 	}
@@ -165,17 +143,7 @@ func shouldUploadFile(req *http.Request) (bool, error) {
 	return stat.Mode().IsRegular(), nil
 }
 
-func uploadFile(w http.ResponseWriter, r *http.Request, filename string) error {
-	path := fmt.Sprintf("..%c%s", os.PathSeparator, r.URL.Path)
-	reader, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	stat, err := reader.Stat()
-	if err != nil {
-		return err
-	}
-
-	http.ServeContent(w, r, filename, stat.ModTime(), reader)
-	return nil
+func prepareTitle(req *http.Request) string {
+	breadcrumb := prepareBreadcrum(req)
+	return fmt.Sprintf("%s %s", req.Host, breadcrumb[1].Title)
 }

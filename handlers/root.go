@@ -21,7 +21,10 @@ type card struct {
 
 type rootPage struct {
 	Host string
+	Breadcrumb []breadcrumbItem
+	LastBreadcrumb string
 	Cards []card
+	Error string
 }
 
 var baseCards []card
@@ -33,25 +36,31 @@ var hlebV4net = net.IPNet {
 }
 var hlebV6net = net.IPNet {
 	IP: net.ParseIP("fd00:41eb::"),
-	Mask: net.CIDRMask(48, 128),
+	Mask: net.CIDRMask(32, 128),
 }
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
+	breadcrumb := prepareBreadcrum(r)
 	tplData := rootPage {
 		Host: r.Host,
 		Cards: getBaseCards(),
+		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
+		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
+	}
+	if len(tplData.Breadcrumb) > 0 {
+		w.WriteHeader(http.StatusNotFound)
+		tplData.Error = "Content not found"
 	}
 
 	var remoteAddr net.IP
 	log.Print(r)
 	if val, ok := r.Header["X-Real-Ip"]; ok {
-		log.Print(val)
 		remoteAddr = net.ParseIP(val[0])
 	} else {
 		remoteAddr = net.ParseIP(r.RemoteAddr)
 	}
 	if hlebV4net.Contains(remoteAddr) || hlebV6net.Contains(remoteAddr) {
-		tplData.Cards = append(tplData.Cards, getHlebCards()...)
+		// tplData.Cards = append(tplData.Cards, getHlebCards()...)
 	}
 
 	err := template.Get("index").Execute(w, tplData)
@@ -87,16 +96,16 @@ func getBaseCards() []card {
 					},
 				},
 			},
-			{
-				Title: "Grafana",
-				Content: "Grafana-based monitoring",
-				Links: []cardLink {
-					{
-						Title: "Server status",
-						Address: "grafana/d/qnuLkwOMk/server-status?orgId=2",
-					},
-				},
-			},
+			// {
+			// 	Title: "Grafana",
+			// 	Content: "Grafana-based monitoring",
+			// 	Links: []cardLink {
+			// 		{
+			// 			Title: "Server status",
+			// 			Address: "grafana/d/qnuLkwOMk/server-status?orgId=2",
+			// 		},
+			// 	},
+			// },
 		}
 	}
 	return baseCards

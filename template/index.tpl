@@ -16,26 +16,36 @@
     <div class="container">
       <nav class="sticky-top" aria-label="breadcrumb">
         <ol class="breadcrumb">
-          <li class="breadcrumb-item active">{{.Host}}</li>
+          {{range .Breadcrumb}}
+            <li class="breadcrumb-item"><a href="{{.Address}}">{{.Title}}</a></li>
+          {{end}}
+          <li class="breadcrumb-item active">{{.LastBreadcrumb}}</li>
+          <!--<li class="breadcrumb-item active">{{.Host}}</li>-->
         </ol>
       </nav>
       <div class="row justify-content-center">
-        {{range .Cards}}
-        <div class="card bg-light border-light m-3" style="width: 18rem;">
-          <div class="card-body">
-            <h5 class="card-title">{{.Title}}</h5>
-            <p class="card-text">{{.Content}}</p>
-          </div>
-          <div class="card-footer">
-            {{range .Links}}
-            <a href="{{.Address}}" class="card-link">{{.Title}}</a>
-            {{end}}
-          </div>
-        </div>
+        {{with .Error}}
+           <h4 class="text-light text-center">{{.}}</h4>
         {{else}}
-        <h4 class="text-light text-center">No content for you, sorry \_(ツ)_/</h4>
+          {{range .Cards}}
+          <div class="card bg-light border-light m-3" style="width: 18rem;">
+            <div class="card-body">
+              <h5 class="card-title">{{.Title}}</h5>
+              <p class="card-text">{{.Content}}</p>
+            </div>
+            <div class="card-footer">
+              {{range .Links}}
+              <a href="{{.Address}}" class="card-link">{{.Title}}</a>
+              {{end}}
+            </div>
+          </div>
+          {{else}}
+          <h4 class="text-light text-center">No content for you, sorry \_(ツ)_/</h4>
+          {{end}}
         {{end}}
       </div>
     </div>
   </body>
 </html>
+
+<!-- vim: expandtab, tabstop=2 -->
