@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"strings"
 
+	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/util"
 )
 
@@ -18,7 +18,8 @@ func Initialize() {
 	basePath := util.BasePath("template/")
 	files, err := ioutil.ReadDir(basePath)
 	if err != nil {
-		log.Fatal(err)
+		logger := log.New("TemplatesParser")
+		logger.Err.Fatal(err)
 		return
 	}
 

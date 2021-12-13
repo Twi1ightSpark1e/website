@@ -2,11 +2,12 @@ package config
 
 import (
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 
 	"gopkg.in/yaml.v2"
+
+	"github.com/Twi1ightSpark1e/website/log"
 )
 
 type FileindexHandlerEndpointStruct struct {
@@ -47,22 +48,23 @@ type Config struct {
 }
 
 var config Config
+var logger = log.New("ConfigParser")
 
 func Initialize(path string) {
 	confFile, err := os.Open(path)
 	if err != nil {
-		log.Fatalf("Cannot open configuration file: %v", err)
+		logger.Err.Fatalf("Cannot open configuration file: %v", err)
 	}
 
 	confRaw, err := ioutil.ReadAll(confFile)
 	_ = confRaw
 	if err != nil {
-		log.Fatalf("Cannot read configuration file: %v", err)
+		logger.Err.Fatalf("Cannot read configuration file: %v", err)
 	}
 
 	err = yaml.Unmarshal(confRaw, &config)
 	if err != nil {
-		log.Fatalf("Invalid configuration file: %v", err)
+		logger.Err.Fatalf("Invalid configuration file: %v", err)
 	}
 }
 

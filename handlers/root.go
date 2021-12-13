@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"log"
 	"net"
 	"net/http"
 
 	configuration "github.com/Twi1ightSpark1e/website/config"
+	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
 )
 
@@ -28,10 +28,19 @@ type rootPage struct {
 	Error string
 }
 
-func RootHandler(w http.ResponseWriter, r *http.Request) {
+type rootHandler struct {
+	logger log.Channels
+}
+func RootHandler(logger log.Channels) http.Handler {
+	return &rootHandler{logger}
+}
+
+func (h *rootHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	breadcrumb := prepareBreadcrum(r)
 
 	remoteAddr := getRemoteAddr(r)
+	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
+
 	tplData := rootPage {
 		Host: r.Host,
 		Cards: getCards(remoteAddr),
@@ -45,7 +54,7 @@ func RootHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := template.Get("index").Execute(w, tplData)
 	if err != nil {
-		log.Print(err)
+		h.logger.Err.Print(err)
 	}
 }
 

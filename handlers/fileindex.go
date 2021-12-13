@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Twi1ightSpark1e/website/config"
+	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
 )
 
@@ -58,9 +58,14 @@ type fileindexPage struct {
 type fileindexHandler struct {
 	root http.FileSystem
 	endpoint config.FileindexHandlerEndpointStruct
+	logger log.Channels
 }
-func FileindexHandler(root http.FileSystem, endpoint config.FileindexHandlerEndpointStruct) http.Handler {
-	return &fileindexHandler{root, endpoint}
+func FileindexHandler(
+	root http.FileSystem,
+	endpoint config.FileindexHandlerEndpointStruct,
+	logger log.Channels,
+) http.Handler {
+	return &fileindexHandler{root, endpoint, logger}
 }
 
 func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +77,8 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	remoteAddr := getRemoteAddr(r)
+	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
+
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
 		w.WriteHeader(http.StatusNotFound)
 		tplData.Error = "Content not found"
@@ -96,7 +103,7 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 compile:
 	err := template.Get("fileindex").Execute(w, tplData)
 	if err != nil {
-		log.Print(err)
+		h.logger.Err.Print(err)
 	}
 }
 

@@ -2,15 +2,17 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
+
+	"github.com/Twi1ightSpark1e/website/log"
 )
 
 func ExecPath() string {
 	exec, err := os.Executable()
 	if (err != nil) {
-		log.Fatal(err)
+		logger := log.New("Util")
+		logger.Err.Fatal(err)
 	}
 
 	return path.Dir(exec)
