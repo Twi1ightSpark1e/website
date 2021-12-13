@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -35,4 +36,12 @@ func prepareBreadcrum(req *http.Request) []breadcrumbItem {
 	}
 
 	return result
+}
+
+func getRemoteAddr(req *http.Request) net.IP {
+	if val, ok := req.Header["X-Real-Ip"]; ok {
+		return net.ParseIP(val[0])
+	}
+
+	return net.ParseIP(req.RemoteAddr)
 }

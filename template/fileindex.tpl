@@ -42,7 +42,7 @@
                         <td>
                             <a href="{{.Name}}" class="text-light">{{if .IsDir}}<img class="mr-2 directory-icon"/>{{else}}<img class="mr-2 file-icon"/>{{end}}{{.Name}}</a>
                         </td>
-                        <td>{{.Size}}</td>
+                        {{if .IsDir}}<td></td>{{else}}<td>{{.Size}}</td>{{end}}
                         <td>{{.Date}}</td>
                     </tr>
                     {{end}}

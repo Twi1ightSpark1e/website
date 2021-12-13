@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/template"
 )
 
@@ -55,7 +55,15 @@ type fileindexPage struct {
 	Error string
 }
 
-func FileindexHandler(w http.ResponseWriter, r *http.Request) {
+type fileindexHandler struct {
+	root http.FileSystem
+	endpoint config.FileindexHandlerEndpointStruct
+}
+func FileindexHandler(root http.FileSystem, endpoint config.FileindexHandlerEndpointStruct) http.Handler {
+	return &fileindexHandler{root, endpoint}
+}
+
+func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	breadcrumb := prepareBreadcrum(r)
 	tplData := fileindexPage {
 		Title: prepareTitle(r),
@@ -63,70 +71,76 @@ func FileindexHandler(w http.ResponseWriter, r *http.Request) {
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
 
-	upload, err := shouldUploadFile(r)
-	if err != nil {
+	remoteAddr := getRemoteAddr(r)
+	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
 		w.WriteHeader(http.StatusNotFound)
 		tplData.Error = "Content not found"
-	} else if upload {
-		http.ServeFile(w, r, r.URL.Path)
-		return
-	} else {
-		list, err := prepareFileList(r)
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			tplData.Error = err.Error()
-		} else {
-			tplData.List = list
-		}
+		goto compile
 	}
 
-	err = template.Get("fileindex").Execute(w, tplData)
+	if uploaded, err := h.uploadFile(w, r); uploaded {
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		tplData.Error = "Content not found"
+		goto compile
+	}
+
+	if list, err := h.prepareFileList(r); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		tplData.Error = err.Error()
+	} else {
+		tplData.List = list
+	}
+
+compile:
+	err := template.Get("fileindex").Execute(w, tplData)
 	if err != nil {
 		log.Print(err)
 	}
 }
 
-func prepareFileList(req *http.Request) ([]fileEntry, error) {
+func (h *fileindexHandler) prepareFileList(req *http.Request) ([]fileEntry, error) {
 	result := make([]fileEntry, 0)
 
-	_, filename := path.Split(req.URL.Path)
-	if filename == "noindex" {
+	if h.isHiddenPath(req.URL.Path) {
 		return result, errors.New("Content not found")
 	}
 
-	files, err := ioutil.ReadDir(fmt.Sprintf("/%s", req.URL.Path))
+	direntry, err := h.root.Open(req.URL.Path)
+	if err != nil {
+		return result, err
+	}
+
+	files, err := direntry.Readdir(-1)
 	if err != nil {
 		return result, err
 	}
 
 	for _, file := range files {
 		name := file.Name()
-		if name == "noindex" {
+		if h.isHiddenPath(name) {
 			continue
 		}
 		if file.IsDir() {
 			name = name + string(os.PathSeparator)
 		}
 
-		entry := fileEntry {
+		result = append(result, fileEntry {
 			IsDir: file.IsDir(),
 			Name: name,
 			Date: file.ModTime().UTC().Format("2006-01-02 15:04:05"),
-		}
-		if !entry.IsDir {
-			entry.Size = ByteCountIEC(file.Size())
-		}
-
-		result = append(result, entry)
+			Size: ByteCountIEC(file.Size()),
+		})
 	}
 
 	err = nil
 	if len(result) == 0 {
 		err = errors.New("This folder is empty")
 	} else {
-		sort.SliceStable(result, func(i, j int) bool {
-			if result[i].IsDir && !result[j].IsDir {
-				return true
+		sort.Slice(result, func (i, j int) bool {
+			if result[i].IsDir != result[j].IsDir {
+				return result[i].IsDir
 			}
 			return strings.ToLower(result[i].Name) < strings.ToLower(result[j].Name)
 		})
@@ -134,13 +148,34 @@ func prepareFileList(req *http.Request) ([]fileEntry, error) {
 	return result, err
 }
 
-func shouldUploadFile(req *http.Request) (bool, error) {
-	stat, err := os.Stat(req.URL.Path)
+func (h *fileindexHandler) uploadFile(writer http.ResponseWriter, req *http.Request) (bool, error) {
+	file, err := h.root.Open(req.URL.Path)
 	if err != nil {
 		return false, err
 	}
 
-	return stat.Mode().IsRegular(), nil
+	stat, err := file.Stat()
+	if err != nil {
+		return false, err
+	}
+
+	if !stat.Mode().IsRegular() {
+		return false, nil
+	}
+
+	http.ServeContent(writer, req, stat.Name(), stat.ModTime(), file)
+	return true, nil
+}
+
+func (h *fileindexHandler) isHiddenPath(p string) bool {
+	hidden := config.Get().Handlers.FileIndex.Hide
+	dirname, filename := path.Split(p)
+	for _, hiddenEntry := range hidden {
+		if filename == hiddenEntry || strings.Contains(dirname, hiddenEntry) {
+			return true
+		}
+	}
+	return false
 }
 
 func prepareTitle(req *http.Request) string {

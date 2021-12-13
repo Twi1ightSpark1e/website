@@ -1,0 +1,72 @@
+# Access Control Lists section, optional.
+#
+# Contains named addresses/subnets, used to restrict access to various site resources.
+# An empty list of addresses/subnets restricts access for everyone.
+acl:
+  local:
+    - 192.168.0.0/16
+  any:
+    - 0.0.0.0/0
+    - ::/0
+  none:
+
+# Web server listening port, required.
+port: 8081
+
+# Handlers section, optional.
+#
+# Contains configuration for various handlers. Currently only one is supported:
+#   - `fileindex`, optional.
+# Options:
+#   - `base_path` - absolute path - root of each endpoint, required;
+#   - `hide` - an array of names that must be hidden from index, optional.
+#
+# Fileindex handler.
+#
+# Displays table of files inside a directory. Hidden names are not shown but available. Options:
+#   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default.
+handlers:
+  fileindex:
+    base_path: "/"
+    hide:
+      - "noindex"
+    endpoints:
+      files:
+        view: any
+      files-test:
+        view: local
+      packages:
+        view: any
+
+# Root content section.
+#
+# Contains array of cards on main page. Every card consists of following properties:
+#   - `title`, required;
+#   - `description`, required;
+#   - `view` - list of clients that are allowed to see card. Optional, forbidden for everyone by default;
+#   - `links` - an array of card links, required.
+#
+# Every link must contain following properties:
+#   - `title`;
+#   - `address`.
+root_content:
+  - title: "File storage"
+    description: "Simple indexed file storage"
+    view: any
+    links:
+      - title: "Link"
+        address: "files/"
+  - title: "Test file storage"
+    description: "Testing file storage index"
+    view: local
+    links:
+      - title: "Link"
+        address: "files-test/"
+  - title: "Gentoo binary host"
+    description: "My own binhost with generic packages"
+    view: any
+    links:
+      - title: "Link"
+        address: "packages/"
+      - title: "How to set up"
+        address: "https://wiki.gentoo.org/wiki/Binary_package_guide/en#Using_binary_packages"
