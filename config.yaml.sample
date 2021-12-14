@@ -27,7 +27,7 @@ port: 8081
 #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default.
 handlers:
   fileindex:
-    base_path: "/"
+    base_path: "/mnt"
     hide:
       - "noindex"
     endpoints:
@@ -36,6 +36,8 @@ handlers:
       files-test:
         view: local
       packages:
+        view: any
+      static:
         view: any
 
 # Root content section.
