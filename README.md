@@ -11,7 +11,7 @@ $ git clone https://github.com/Twi1ightSpark1e/website.git
 $ pushd website
 $ go build
 $ cp config.yaml{.sample,}
-$ EDITOR config.yaml
+$ $EDITOR config.yaml
 $ ./website
 $ popd
 ```
