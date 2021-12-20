@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
+
+	getopt "github.com/pborman/getopt/v2"
 
 	configuration "github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/handlers"
@@ -11,11 +14,22 @@ import (
 	"github.com/Twi1ightSpark1e/website/template"
 )
 
+var (
+	configPath = "config.yaml"
+	showHelp = false
+)
+
 func main() {
 	logger := log.New("Main")
 
+	initialize()
+	if showHelp {
+		getopt.PrintUsage(os.Stdout)
+		os.Exit(0)
+	}
+
 	template.Initialize()
-	configuration.Initialize("config.yaml")
+	configuration.Initialize(configPath)
 	config := configuration.Get()
 
 	fileindexLogger := log.New("FileindexHandler")
@@ -36,4 +50,11 @@ func main() {
 	addr := fmt.Sprintf(":%d", config.Port)
 	logger.Info.Printf("Listening TCP on '%s'", addr)
 	logger.Err.Fatal(http.ListenAndServe(addr, nil))
+}
+
+func initialize() {
+	getopt.FlagLong(&showHelp, "help", 'h', "Show usage information and exit.")
+	getopt.FlagLong(&configPath, "config", 'c', "Path to configuration file.")
+
+	getopt.Parse()
 }

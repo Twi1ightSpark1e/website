@@ -51,6 +51,8 @@ var config Config
 var logger = log.New("ConfigParser")
 
 func Initialize(path string) {
+	logger.Info.Printf("Using configuration file %s", path)
+
 	confFile, err := os.Open(path)
 	if err != nil {
 		logger.Err.Fatalf("Cannot open configuration file: %v", err)
