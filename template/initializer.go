@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/util"
 )
@@ -14,11 +15,12 @@ var templates map[string]*template.Template
 
 func Initialize() {
 	templates = make(map[string]*template.Template)
+	logger := log.New("TemplatesParser")
 
-	basePath := util.BasePath("template/")
+	basePath := util.FullPath(config.Get().TemplatesPath)
+	logger.Info.Printf("Parsing templates at '%s'", basePath)
 	files, err := ioutil.ReadDir(basePath)
 	if err != nil {
-		logger := log.New("TemplatesParser")
 		logger.Err.Fatal(err)
 		return
 	}
@@ -34,6 +36,8 @@ func Initialize() {
 		tpl := template.Must(template.ParseFiles(path))
 		templateName := name[:len(name) - len(suffix)]
 		templates[templateName] = tpl
+
+		logger.Info.Printf("New template registered: '%s'", name)
 	}
 }
 

@@ -13,6 +13,9 @@ acl:
 # Web server listening port, required.
 port: 8081
 
+# Directory with templates path (absolute or relative), required.
+templates_path: "template/"
+
 # Handlers section, optional.
 #
 # Contains configuration for various handlers. Currently only one is supported:

@@ -40,6 +40,7 @@ type CardStruct struct {
 type Config struct {
 	ACL map[string][]string `yaml:"acl,omitempty"`
 	Port int `yaml:"port"`
+	TemplatesPath string `yaml:"templates_path"`
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`
 		Graphviz GraphvizStruct `yaml:"graphviz,omitempty"`

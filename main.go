@@ -28,9 +28,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	template.Initialize()
 	configuration.Initialize(configPath)
 	config := configuration.Get()
+	template.Initialize()
 
 	fileindexLogger := log.New("FileindexHandler")
 	for entry := range config.Handlers.FileIndex.Endpoints {

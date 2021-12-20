@@ -18,7 +18,9 @@ func ExecPath() string {
 	return path.Dir(exec)
 }
 
-func BasePath(suffix string) string {
+func FullPath(suffix string) string {
+	if suffix[0] == os.PathSeparator {
+		return suffix
+	}
 	return fmt.Sprintf("%s/%s", ExecPath(), suffix)
 }
-
