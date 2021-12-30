@@ -65,6 +65,7 @@ func FileindexHandler(
 	endpoint config.FileindexHandlerEndpointStruct,
 	logger log.Channels,
 ) http.Handler {
+	template.AssertExists("fileindex", logger)
 	return &fileindexHandler{root, endpoint, logger}
 }
 

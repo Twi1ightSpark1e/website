@@ -32,6 +32,7 @@ type rootHandler struct {
 	logger log.Channels
 }
 func RootHandler(logger log.Channels) http.Handler {
+	template.AssertExists("index", logger)
 	return &rootHandler{logger}
 }
 

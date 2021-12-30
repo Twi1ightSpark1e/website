@@ -37,10 +37,16 @@ func Initialize() {
 		templateName := name[:len(name) - len(suffix)]
 		templates[templateName] = tpl
 
-		logger.Info.Printf("New template registered: '%s'", name)
+		logger.Info.Printf("New template registered: '%s'", templateName)
 	}
 }
 
 func Get(name string) *template.Template {
 	return templates[name]
+}
+
+func AssertExists(name string, logger log.Channels) {
+	if templates[name] == nil {
+		logger.Err.Fatalf("'%s' template is missing!", name)
+	}
 }
