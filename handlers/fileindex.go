@@ -85,6 +85,14 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		goto compile
 	}
 
+	if !config.Authenticate(r, h.endpoint.Auth) {
+		authHeader := fmt.Sprintf(`Basic realm="Authentication required to use %s"`, tplData.LastBreadcrumb)
+		w.Header().Set("WWW-Authenticate", authHeader)
+		w.WriteHeader(http.StatusUnauthorized)
+		tplData.Error = "Access denied"
+		goto compile
+	}
+
 	if uploaded, err := h.uploadFile(w, r); uploaded {
 		return
 	} else if err != nil {

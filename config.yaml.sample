@@ -10,6 +10,16 @@ acl:
     - ::/0
   none:
 
+# Authentication section, optional.
+#
+# Contains pairs "username: password" to restrict access to public resources to authorized users.
+# What can be used as a password:
+#   - plaintext, will be bcrypt-ed on next server start;
+#   - bcrypt hash, will be used as is.
+auth:
+  testuser1: testpasswd
+  testuser2: helloworld
+
 # Web server listening port, required.
 port: 8081
 
@@ -38,6 +48,9 @@ handlers:
         view: any
       files-test:
         view: local
+        auth:
+          - testuser1
+          - testuser2
       packages:
         view: any
       static:

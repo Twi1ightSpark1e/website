@@ -1,10 +1,14 @@
 package config
 
 import (
-	"io/ioutil"
+	"crypto/subtle"
+	"fmt"
 	"net"
+	"net/http"
 	"os"
+	"regexp"
 
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 
 	"github.com/Twi1ightSpark1e/website/log"
@@ -12,6 +16,7 @@ import (
 
 type FileindexHandlerEndpointStruct struct {
 	View string `yaml:"view,omitempty"`
+	Auth []string `yaml:"auth,omitempty"`
 }
 type FileindexHandlerStruct struct {
 	BasePath string `yaml:"base_path"`
@@ -38,6 +43,7 @@ type CardStruct struct {
 }
 
 type Config struct {
+	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
 	Port int `yaml:"port"`
 	TemplatesPath string `yaml:"templates_path"`
@@ -54,13 +60,7 @@ var logger = log.New("ConfigParser")
 func Initialize(path string) {
 	logger.Info.Printf("Using configuration file %s", path)
 
-	confFile, err := os.Open(path)
-	if err != nil {
-		logger.Err.Fatalf("Cannot open configuration file: %v", err)
-	}
-
-	confRaw, err := ioutil.ReadAll(confFile)
-	_ = confRaw
+	confRaw, err := os.ReadFile(path)
 	if err != nil {
 		logger.Err.Fatalf("Cannot read configuration file: %v", err)
 	}
@@ -69,6 +69,55 @@ func Initialize(path string) {
 	if err != nil {
 		logger.Err.Fatalf("Invalid configuration file: %v", err)
 	}
+
+	updatePasswords(path)
+}
+
+func updatePasswords(path string) {
+	var oldUsers []string
+	var newUsers []string
+
+	for user, pass := range(config.Auth) {
+		_, err := bcrypt.Cost([]byte(pass))
+		if err == nil {
+			continue
+		}
+
+		newPass, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+		if err != nil {
+			logger.Err.Fatalf("Cannot hash password of user '%s': %v", user, err)
+		}
+		config.Auth[user] = string(newPass)
+
+		oldUsers = append(oldUsers, fmt.Sprintf("%s:\\s+%s", user, pass))
+		newUsers = append(newUsers, fmt.Sprintf("%s: %s", user, newPass))
+
+		logger.Info.Printf("Updated password of user '%s'", user)
+	}
+
+	if len(oldUsers) == 0 {
+		return
+	}
+
+	confRaw, err := os.ReadFile(path)
+	if err != nil {
+		logger.Err.Fatalf("Cannot read configuration file: %v", err)
+	}
+
+	for idx := range(oldUsers) {
+		old, err := regexp.Compile(oldUsers[idx])
+		if err != nil {
+			logger.Err.Fatalf("Cannot compile replacement regular expression: %v", err)
+		}
+ 		confRaw = old.ReplaceAllLiteral(confRaw, []byte(newUsers[idx]))
+	}
+
+	file, err := os.OpenFile(path, os.O_WRONLY | os.O_TRUNC, 0644)
+	if err != nil {
+		logger.Err.Fatalf("Cannot open configuration file to write: %v", err)
+	}
+
+	file.Write(confRaw)
 }
 
 func Get() Config {
@@ -89,6 +138,26 @@ func IsAllowedByACL(addr net.IP, aclName string) bool {
 		}
 
 		return validNet.Contains(addr)
+	}
+
+	return false
+}
+
+func Authenticate(r *http.Request, allowedUsers []string) bool {
+	if len(allowedUsers) == 0 {
+		return true
+	}
+
+	user, pass, ok := r.BasicAuth()
+	if !ok {
+		return false
+	}
+
+	for _, allowedUser:= range(allowedUsers) {
+		if subtle.ConstantTimeCompare([]byte(user), []byte(allowedUser)) == 1 {
+			hashPass := config.Auth[user]
+			return bcrypt.CompareHashAndPassword([]byte(hashPass), []byte(pass)) == nil
+		}
 	}
 
 	return false
