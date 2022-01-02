@@ -33,9 +33,8 @@ func main() {
 	template.Initialize()
 
 	fileindexLogger := log.New("FileindexHandler")
-	for entry := range config.Handlers.FileIndex.Endpoints {
+	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {
 		baseDir := http.Dir(config.Handlers.FileIndex.BasePath)
-		endpoint := config.Handlers.FileIndex.Endpoints[entry]
 		handler := handlers.FileindexHandler(baseDir, endpoint, fileindexLogger)
 
 		path := fmt.Sprintf("/%s/", entry)
@@ -43,6 +42,14 @@ func main() {
 
 		visiblePath := strings.TrimRight(config.Handlers.FileIndex.BasePath, "/") + path
 		logger.Info.Printf("New 'fileindex' handler for '%s'", visiblePath)
+	}
+
+	graphvizLogger := log.New("GraphvizLogger")
+	for entry, endpoint := range config.Handlers.Graphviz.Endpoints {
+		path := fmt.Sprintf("/%s/", entry)
+		http.Handle(path, handlers.GraphvizHandler(graphvizLogger, endpoint))
+
+		logger.Info.Printf("New 'graphviz' handler for '%s'", path)
 	}
 
 	http.Handle("/", handlers.RootHandler(log.New("RootHandler")))
