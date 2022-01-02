@@ -43,5 +43,6 @@ func getRemoteAddr(req *http.Request) net.IP {
 		return net.ParseIP(val[0])
 	}
 
-	return net.ParseIP(req.RemoteAddr)
+	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
+	return net.ParseIP(ip)
 }
