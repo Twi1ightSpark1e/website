@@ -132,14 +132,15 @@ func IsAllowedByACL(addr net.IP, aclName string) bool {
 
 	for _, netStr := range validNetStrs {
 		_, validNet, err := net.ParseCIDR(netStr)
-		if err != nil {
-			validAddr := net.ParseIP(netStr)
-			if validAddr.Equal(addr) {
+		if err == nil {
+			if validNet.Contains(addr) {
 				return true
 			}
+			continue
 		}
 
-		if validNet.Contains(addr) {
+		validAddr := net.ParseIP(netStr)
+		if validAddr.Equal(addr) {
 			return true
 		}
 	}
