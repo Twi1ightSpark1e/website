@@ -30,27 +30,21 @@ templates_path: "template/"
 #
 # Contains configuration for various handlers. Currently supported:
 #   - `fileindex`, optional;
-#   - `graphviz`, optional.
-#
-# Fileindex handler.
-#
-# Displays table of files inside a directory. Hidden names are not shown but available. Options:
-#   - `base_path` - absolute path - root of each endpoint, required;
-#   - `hide` - an array of names that must be hidden from index, optional.
-# Every endpoint has following options:
-#   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
-#   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default.
-#
-# Graphviz handler.
-#
-# Receives 'dot'-compatible data on PUT requests, returns graph drawn as SVG. Every endpoint has following options:
-#   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
-#   - `edit` - list of clients that are allowed to perform PUT and DELETE requests. Optional, forbidden for everyone by default.
+#   - `graphviz`, optional;
+#   - `webhook`, optional.
 handlers:
+  # Fileindex handler.
+  #
+  # Displays table of files inside a directory. Hidden names are not shown but available. Options:
+  #   - `base_path` - absolute path - root of each endpoint, required;
+  #   - `hide` - an array of names that must be hidden from index, optional.
   fileindex:
     base_path: "/mnt"
     hide:
       - "noindex"
+    # Endpoint options:
+    #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
+    #   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default.
     endpoints:
       files:
         view: any
@@ -63,11 +57,34 @@ handlers:
         view: any
       static:
         view: any
+  # Graphviz handler.
+  #
+  # Receives 'dot'-compatible data on PUT requests, returns graph drawn as SVG.
   graphviz:
+    # Endpoint options:
+    #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
+    #   - `edit` - list of clients that are allowed to perform PUT and DELETE requests. Optional, forbidden for everyone by default.
     endpoints:
       graph:
         view: any
         edit: local
+  # Webhook handler.
+  #
+  # When valid request received, executes specified command.
+  webhook:
+    # Endpoint options:
+    #   - `view` - list of clients that are allowed to use webhook. Optional, forbidden for everyone by default;
+    #   - `method` - valid case-insesetive HTTP method name, others will fail. Optional, everything is allowed by default;
+    #   - `headers` - case-sensetive headers that are must be present in request. Optional, will not check headers if empty;
+    #   - `exec` - command line for application that will be executed on valid request. Will receive request body in stdin. Required.
+    endpoints:
+      hlebmesh-hook:
+        view: any
+        method: post
+        headers:
+          Content-Type: application/json
+          X-Gitlab-Token: somerandomstring
+        exec: /usr/local/bin/hook.sh hlebmesh-hook
 
 # Root content section.
 #

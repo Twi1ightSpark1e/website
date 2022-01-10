@@ -32,6 +32,16 @@ type GraphvizStruct struct {
 	Endpoints map[string]GraphvizEndpointStruct `yaml:"endpoints"`
 }
 
+type WebhookEndpointStruct struct {
+	View string `yaml:"view,omitempty"`
+	Method string `yaml:"method,omitempty"`
+	Headers map[string]string `yaml:"headers,omitempty"`
+	Exec string `yaml:"exec"`
+}
+type WebhookStruct struct {
+	Endpoints map[string]WebhookEndpointStruct `yaml:"endpoints"`
+}
+
 type CardStruct struct {
 	Title string `yaml:"title"`
 	Description string `yaml:"description"`
@@ -50,6 +60,7 @@ type Config struct {
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`
 		Graphviz GraphvizStruct `yaml:"graphviz,omitempty"`
+		Webhook WebhookStruct `yaml:"webhook,omitempty"`
 	} `yaml:"handlers,omitempty"`
 	RootContent []CardStruct `yaml:"root_content"`
 }

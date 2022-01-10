@@ -49,8 +49,8 @@ func (h *rootHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
 	if len(tplData.Breadcrumb) > 0 {
-		w.WriteHeader(http.StatusNotFound)
-		tplData.Error = "Content not found"
+		writeNotFoundError(w, r, h.logger.Err)
+		return
 	}
 
 	err := template.Get("index").Execute(w, tplData)

@@ -52,6 +52,14 @@ func main() {
 		logger.Info.Printf("New 'graphviz' handler for '%s'", path)
 	}
 
+	webhookLogger := log.New("WebhookLogger")
+	for entry, endpoint := range config.Handlers.Webhook.Endpoints {
+		path := fmt.Sprintf("/%s/", entry)
+		http.Handle(path, handlers.WebhookHandler(webhookLogger, endpoint))
+
+		logger.Info.Printf("New 'webhook' handler for '%s'", path)
+	}
+
 	http.Handle("/", handlers.RootHandler(log.New("RootHandler")))
 
 	addr := fmt.Sprintf(":%d", config.Port)
