@@ -53,14 +53,14 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPut:
-		if err := h.handlePUT(w, r); err != nil {
+		if err := h.handlePUT(r); err != nil {
 			w.Write([]byte(err.Error()))
 		} else {
 			w.Write([]byte("ok"))
 		}
 		return
 	case http.MethodDelete:
-		if err := h.handleDELETE(w, r); err != nil {
+		if err := h.handleDELETE(r); err != nil {
 			w.Write([]byte(err.Error()))
 		} else {
 			w.Write([]byte("ok"))
