@@ -52,15 +52,22 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
-	case "PUT":
-		if err := h.HandlePUT(w, r); err != nil {
+	case http.MethodPut:
+		if err := h.handlePUT(w, r); err != nil {
 			w.Write([]byte(err.Error()))
 		} else {
 			w.Write([]byte("ok"))
 		}
 		return
-	case "GET":
-		h.HandleGET(w, r, &tplData)
+	case http.MethodDelete:
+		if err := h.handleDELETE(w, r); err != nil {
+			w.Write([]byte(err.Error()))
+		} else {
+			w.Write([]byte("ok"))
+		}
+		return
+	case http.MethodGet:
+		h.handleGET(w, r, &tplData)
 	default:
 		w.WriteHeader(http.StatusForbidden)
 		tplData.Error = "Invalid request method"
@@ -73,7 +80,7 @@ compile:
 	}
 }
 
-func (h *graphvizHandler) HandlePUT(w http.ResponseWriter, r *http.Request) error {
+func (h *graphvizHandler) handlePUT(r *http.Request) error {
 	remoteAddr := getRemoteAddr(r)
 	h.logger.Info.Printf("Client %s sent PUT request on '%s'", remoteAddr, r.URL.Path)
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.Edit) {
@@ -114,7 +121,18 @@ func (h *graphvizHandler) HandlePUT(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-func (h *graphvizHandler) HandleGET(w http.ResponseWriter, r *http.Request, tpl *graphvizPage) {
+func (h *graphvizHandler) handleDELETE(r *http.Request) error {
+	remoteAddr := getRemoteAddr(r)
+	h.logger.Info.Printf("Client %s sent DELETE request on '%s'", remoteAddr, r.URL.Path)
+	if !config.IsAllowedByACL(remoteAddr, h.endpoint.Edit) {
+		return errors.New("Content not found")
+	}
+
+	h.graph = graphData{}
+	return nil
+}
+
+func (h *graphvizHandler) handleGET(w http.ResponseWriter, r *http.Request, tpl *graphvizPage) {
 	remoteAddr := getRemoteAddr(r)
 	h.logger.Info.Printf("Client %s sent GET request on '%s'", remoteAddr, r.URL.Path)
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
