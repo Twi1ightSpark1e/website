@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 	"time"
@@ -18,6 +19,7 @@ type graphvizPage struct {
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string
 	Image string
+	Timestamp string
 	Error string
 }
 
@@ -43,9 +45,6 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
 
-	remoteAddr := getRemoteAddr(r)
-	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
-
 	if len(tplData.Breadcrumb) > 1 {
 		w.WriteHeader(http.StatusNotFound)
 		tplData.Error = "Content not found"
@@ -61,7 +60,7 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case "GET":
-		tplData.Image = base64.StdEncoding.EncodeToString(h.graph.image.Bytes())
+		h.HandleGET(w, r, &tplData)
 	default:
 		w.WriteHeader(http.StatusForbidden)
 		tplData.Error = "Invalid request method"
@@ -75,6 +74,12 @@ compile:
 }
 
 func (h *graphvizHandler) HandlePUT(w http.ResponseWriter, r *http.Request) error {
+	remoteAddr := getRemoteAddr(r)
+	h.logger.Info.Printf("Client %s sent PUT request on '%s'", remoteAddr, r.URL.Path)
+	if !config.IsAllowedByACL(remoteAddr, h.endpoint.Edit) {
+		return errors.New("Content not found")
+	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
@@ -107,4 +112,21 @@ func (h *graphvizHandler) HandlePUT(w http.ResponseWriter, r *http.Request) erro
 	h.graph.timestamp = time.Now().Unix()
 
 	return nil
+}
+
+func (h *graphvizHandler) HandleGET(w http.ResponseWriter, r *http.Request, tpl *graphvizPage) {
+	remoteAddr := getRemoteAddr(r)
+	h.logger.Info.Printf("Client %s sent GET request on '%s'", remoteAddr, r.URL.Path)
+	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
+		tpl.Error = "Content not found"
+		return
+	}
+
+	tpl.Image = base64.StdEncoding.EncodeToString(h.graph.image.Bytes())
+
+	if h.graph.timestamp == 0 {
+		tpl.Timestamp = "not performed yet"
+	} else {
+		tpl.Timestamp = time.Unix(h.graph.timestamp, 0).String()
+	}
 }
