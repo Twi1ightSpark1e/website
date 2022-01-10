@@ -46,9 +46,8 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(tplData.Breadcrumb) > 1 {
-		w.WriteHeader(http.StatusNotFound)
-		tplData.Error = "Content not found"
-		goto compile
+		writeNotFoundError(w, r, h.logger.Err)
+		return
 	}
 
 	switch r.Method {
@@ -73,7 +72,6 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tplData.Error = "Invalid request method"
 	}
 
-compile:
 	err := template.Get("graphviz").Execute(w, tplData)
 	if err != nil {
 		h.logger.Err.Print(err)

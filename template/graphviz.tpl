@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title></title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -31,15 +30,9 @@
         </ol>
       </nav>
       <div class="row justify-content-center">
-        {{with .Error}}
-          <h4 class="text-light text-center">{{.}}</h4>
-        {{else}}
-          <h3 class="text-light text-center">Last update: {{.Timestamp}}</h3>
-          <img></img>
-        {{end}}
+        <h3 class="text-light text-center">Last update: {{.Timestamp}}</h3>
+        <img></img>
       </div>
     </div>
   </body>
 </html>
-
-<!-- vim: expandtab, tabstop=2 -->

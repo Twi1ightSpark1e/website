@@ -52,7 +52,6 @@ type fileindexPage struct {
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string
 	List []fileEntry
-	Error string
 }
 
 type fileindexHandler struct {
@@ -81,35 +80,31 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
-		w.WriteHeader(http.StatusNotFound)
-		tplData.Error = "Content not found"
-		goto compile
+		writeNotFoundError(w, r, h.logger.Err)
+		return
 	}
 
 	if !config.Authenticate(r, h.endpoint.Auth) {
 		authHeader := fmt.Sprintf(`Basic realm="Authentication required to use %s"`, tplData.LastBreadcrumb)
 		w.Header().Set("WWW-Authenticate", authHeader)
-		w.WriteHeader(http.StatusUnauthorized)
-		tplData.Error = "Access denied"
-		goto compile
+		writeUnauthorizedError(w, r, h.logger.Err)
+		return
 	}
 
 	if uploaded, err := h.uploadFile(w, r); uploaded {
 		return
 	} else if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		tplData.Error = "Content not found"
-		goto compile
+		writeNotFoundError(w, r, h.logger.Err)
+		return
 	}
 
 	if list, err := h.prepareFileList(r); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		tplData.Error = err.Error()
+		writeError(w, r, err, h.logger.Err)
+		return
 	} else {
 		tplData.List = list
 	}
 
-compile:
 	err := template.Get("fileindex").Execute(w, tplData)
 	if err != nil {
 		h.logger.Err.Print(err)

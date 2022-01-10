@@ -25,9 +25,7 @@
             </ol>
         </nav>
         <!-- Files table -->
-        {{if .Error}}
-           <h4 class="text-light text-center">{{.Error}}</h4>
-        {{else if .List}}
+        {{if .List}}
             <table class="table table-striped table-sm table-hover table-dark">
                 <thead>
                     <tr>
