@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Twi1ightSpark1e/website/template"
 )
@@ -12,6 +13,24 @@ type errorPage struct {
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string
 	Error string
+}
+
+func assertPath(path string, w http.ResponseWriter, r *http.Request, errlog *log.Logger) bool {
+	if path == r.URL.Path {
+		return true
+	}
+
+	writeNotFoundError(w, r, errlog)
+	return false
+}
+
+func assertPathBeginning(path string, w http.ResponseWriter, r *http.Request, errlog *log.Logger) bool {
+	if strings.Index(r.URL.Path, path) == 0 {
+		return true
+	}
+
+	writeNotFoundError(w, r, errlog)
+	return false
 }
 
 func writeUnauthorizedError(w http.ResponseWriter, r *http.Request, errlog *log.Logger) {

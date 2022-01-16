@@ -48,7 +48,6 @@ type fileEntry struct {
 }
 
 type fileindexPage struct {
-	Title string
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string
 	List []fileEntry
@@ -56,22 +55,23 @@ type fileindexPage struct {
 
 type fileindexHandler struct {
 	root http.FileSystem
+	path string
 	endpoint config.FileindexHandlerEndpointStruct
 	logger log.Channels
 }
 func FileindexHandler(
 	root http.FileSystem,
+	path string,
 	endpoint config.FileindexHandlerEndpointStruct,
 	logger log.Channels,
 ) http.Handler {
 	template.AssertExists("fileindex", logger)
-	return &fileindexHandler{root, endpoint, logger}
+	return &fileindexHandler{root, path, endpoint, logger}
 }
 
 func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	breadcrumb := prepareBreadcrum(r)
 	tplData := fileindexPage {
-		Title: prepareTitle(r),
 		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
@@ -81,6 +81,10 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
 		writeNotFoundError(w, r, h.logger.Err)
+		return
+	}
+
+	if !assertPathBeginning(h.path, w, r, h.logger.Err) {
 		return
 	}
 
@@ -187,9 +191,4 @@ func (h *fileindexHandler) isHiddenPath(p string) bool {
 		}
 	}
 	return false
-}
-
-func prepareTitle(req *http.Request) string {
-	breadcrumb := prepareBreadcrum(req)
-	return fmt.Sprintf("%s %s", req.Host, breadcrumb[1].Title)
 }

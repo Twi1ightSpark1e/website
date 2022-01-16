@@ -20,7 +20,6 @@ type graphvizPage struct {
 	LastBreadcrumb string
 	Image string
 	Timestamp string
-	Error string
 }
 
 type graphData struct {
@@ -30,12 +29,13 @@ type graphData struct {
 
 type graphvizHandler struct {
 	logger log.Channels
+	path string
 	endpoint config.GraphvizEndpointStruct
 	graph graphData
 }
-func GraphvizHandler(logger log.Channels, endpoint config.GraphvizEndpointStruct) http.Handler {
+func GraphvizHandler(logger log.Channels, path string, endpoint config.GraphvizEndpointStruct) http.Handler {
 	template.AssertExists("graphviz", logger)
-	return &graphvizHandler{logger, endpoint, graphData{}}
+	return &graphvizHandler{logger, path, endpoint, graphData{}}
 }
 
 func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -45,55 +45,52 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
 
-	if len(tplData.Breadcrumb) > 1 {
+	switch r.Method {
+	case http.MethodPut:
+		h.handlePUT(w, r)
+		return
+	case http.MethodDelete:
+		h.handleDELETE(w, r)
+		return
+	case http.MethodGet:
+		if !h.handleGET(w, r, &tplData) {
+			return
+		}
+		err := template.Get("graphviz").Execute(w, tplData)
+		if err != nil {
+			h.logger.Err.Print(err)
+		}
+	default:
+		w.WriteHeader(http.StatusForbidden)
+		writeError(w, r, errors.New("Invalid request method"), h.logger.Err)
+		return
+	}
+}
+
+func (h *graphvizHandler) handlePUT(w http.ResponseWriter, r *http.Request) {
+	remoteAddr := getRemoteAddr(r)
+	h.logger.Info.Printf("Client %s sent PUT request on '%s'", remoteAddr, r.URL.Path)
+
+	if !config.IsAllowedByACL(remoteAddr, h.endpoint.Edit) {
 		writeNotFoundError(w, r, h.logger.Err)
 		return
 	}
 
-	switch r.Method {
-	case http.MethodPut:
-		if err := h.handlePUT(r); err != nil {
-			w.Write([]byte(err.Error()))
-		} else {
-			w.Write([]byte("ok"))
-		}
+	if !assertPath(h.path, w, r, h.logger.Err) {
 		return
-	case http.MethodDelete:
-		if err := h.handleDELETE(r); err != nil {
-			w.Write([]byte(err.Error()))
-		} else {
-			w.Write([]byte("ok"))
-		}
-		return
-	case http.MethodGet:
-		h.handleGET(w, r, &tplData)
-	default:
-		w.WriteHeader(http.StatusForbidden)
-		tplData.Error = "Invalid request method"
-	}
-
-	err := template.Get("graphviz").Execute(w, tplData)
-	if err != nil {
-		h.logger.Err.Print(err)
-	}
-}
-
-func (h *graphvizHandler) handlePUT(r *http.Request) error {
-	remoteAddr := getRemoteAddr(r)
-	h.logger.Info.Printf("Client %s sent PUT request on '%s'", remoteAddr, r.URL.Path)
-	if !config.IsAllowedByACL(remoteAddr, h.endpoint.Edit) {
-		return errors.New("Content not found")
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return err
+		writeError(w, r, err, h.logger.Err)
+		return
 	}
 
 	g := graphviz.New().SetLayout("circo")
 	graph, err := graphviz.ParseBytes(body)
 	if err != nil {
-		return err
+		writeError(w, r, err, h.logger.Err)
+		return
 	}
 
 	// Styling graph
@@ -110,32 +107,44 @@ func (h *graphvizHandler) handlePUT(r *http.Request) error {
 	// Render graph
 	var buffer bytes.Buffer
 	if err = g.Render(graph, graphviz.SVG, &buffer); err != nil {
-		return err
+		writeError(w, r, err, h.logger.Err)
+		return
 	}
 
 	h.graph.image = buffer
 	h.graph.timestamp = time.Now().Unix()
 
-	return nil
+	w.Write([]byte("ok"))
 }
 
-func (h *graphvizHandler) handleDELETE(r *http.Request) error {
+func (h *graphvizHandler) handleDELETE(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := getRemoteAddr(r)
 	h.logger.Info.Printf("Client %s sent DELETE request on '%s'", remoteAddr, r.URL.Path)
+
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.Edit) {
-		return errors.New("Content not found")
+		writeNotFoundError(w, r, h.logger.Err)
+		return
+	}
+
+	if !assertPath(h.path, w, r, h.logger.Err) {
+		return
 	}
 
 	h.graph = graphData{}
-	return nil
+	w.Write([]byte("ok"))
 }
 
-func (h *graphvizHandler) handleGET(w http.ResponseWriter, r *http.Request, tpl *graphvizPage) {
+func (h *graphvizHandler) handleGET(w http.ResponseWriter, r *http.Request, tpl *graphvizPage) bool {
 	remoteAddr := getRemoteAddr(r)
 	h.logger.Info.Printf("Client %s sent GET request on '%s'", remoteAddr, r.URL.Path)
+
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
-		tpl.Error = "Content not found"
-		return
+		writeNotFoundError(w, r, h.logger.Err)
+		return false
+	}
+
+	if !assertPath(h.path, w, r, h.logger.Err) {
+		return false
 	}
 
 	tpl.Image = base64.StdEncoding.EncodeToString(h.graph.image.Bytes())
@@ -145,4 +154,6 @@ func (h *graphvizHandler) handleGET(w http.ResponseWriter, r *http.Request, tpl 
 	} else {
 		tpl.Timestamp = time.Unix(h.graph.timestamp, 0).String()
 	}
+
+	return true
 }

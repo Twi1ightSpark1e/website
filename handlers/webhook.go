@@ -13,10 +13,11 @@ import (
 
 type webhookHandler struct {
 	logger log.Channels
+	path string
 	endpoint config.WebhookEndpointStruct
 }
-func WebhookHandler(logger log.Channels, endpoint config.WebhookEndpointStruct) http.Handler {
-	return &webhookHandler{logger, endpoint}
+func WebhookHandler(logger log.Channels, path string, endpoint config.WebhookEndpointStruct) http.Handler {
+	return &webhookHandler{logger, path, endpoint}
 }
 
 func (h *webhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,6 +26,10 @@ func (h *webhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
 		writeNotFoundError(w, r, h.logger.Err)
+		return
+	}
+
+	if !assertPath(h.path, w, r, h.logger.Err) {
 		return
 	}
 
