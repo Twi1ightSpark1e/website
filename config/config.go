@@ -55,7 +55,7 @@ type CardStruct struct {
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
-	Port int `yaml:"port"`
+	Listen string `yaml:"listen"`
 	TemplatesPath string `yaml:"templates_path"`
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`

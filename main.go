@@ -62,9 +62,8 @@ func main() {
 
 	http.Handle("/", handlers.RootHandler(log.New("RootHandler")))
 
-	addr := fmt.Sprintf(":%d", config.Port)
-	logger.Info.Printf("Listening TCP on '%s'", addr)
-	logger.Err.Fatal(http.ListenAndServe(addr, nil))
+	logger.Info.Printf("Listening TCP on '%s'", config.Listen)
+	logger.Err.Fatal(http.ListenAndServe(config.Listen, nil))
 }
 
 func initialize() {
