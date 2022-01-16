@@ -31,7 +31,10 @@ templates_path: "template/"
 # Contains configuration for various handlers. Currently supported:
 #   - `fileindex`, optional;
 #   - `graphviz`, optional;
-#   - `webhook`, optional.
+#   - `webhook`, optional;
+#   - `cards`, optional.
+#
+# Special endpoint name `index` is used to set up handler for main page.
 handlers:
   # Fileindex handler.
   #
@@ -39,32 +42,28 @@ handlers:
   #   - `base_path` - absolute path - root of each endpoint, required;
   #   - `hide` - an array of names that must be hidden from index, optional.
   fileindex:
-    base_path: "/mnt"
+    base_path: "/mnt/"
     hide:
       - "noindex"
-    # Endpoint options:
-    #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
-    #   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default.
     endpoints:
-      files:
-        view: any
+      # Endpoint options:
+      #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
+      #   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default.
       files-test:
         view: local
         auth:
           - testuser1
           - testuser2
-      packages:
-        view: any
       static:
         view: any
   # Graphviz handler.
   #
   # Receives 'dot'-compatible data on PUT requests, returns graph drawn as SVG.
   graphviz:
-    # Endpoint options:
-    #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
-    #   - `edit` - list of clients that are allowed to perform PUT and DELETE requests. Optional, forbidden for everyone by default.
     endpoints:
+      # Endpoint options:
+      #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
+      #   - `edit` - list of clients that are allowed to perform PUT and DELETE requests. Optional, forbidden for everyone by default.
       graph:
         view: any
         edit: local
@@ -72,55 +71,46 @@ handlers:
   #
   # When valid request received, executes specified command.
   webhook:
-    # Endpoint options:
-    #   - `view` - list of clients that are allowed to use webhook. Optional, forbidden for everyone by default;
-    #   - `method` - valid case-insesetive HTTP method name, others will fail. Optional, everything is allowed by default;
-    #   - `headers` - case-sensetive headers that are must be present in request. Optional, will not check headers if empty;
-    #   - `exec` - command line for application that will be executed on valid request. Will receive request body in stdin. Required.
     endpoints:
-      hlebmesh-hook:
+      # Endpoint options:
+      #   - `view` - list of clients that are allowed to use webhook. Optional, forbidden for everyone by default;
+      #   - `method` - valid case-insesetive HTTP method name, others will fail. Optional, everything is allowed by default;
+      #   - `headers` - case-sensetive headers that are must be present in request. Optional, will not check headers if empty;
+      #   - `exec` - command line for application that will be executed on valid request. Will receive request body in stdin. Required.
+      testhook:
         view: any
         method: post
         headers:
           Content-Type: application/json
           X-Gitlab-Token: somerandomstring
-        exec: /usr/local/bin/hook.sh hlebmesh-hook
-
-# Root content section.
-#
-# Contains array of cards on main page. Every card consists of following properties:
-#   - `title`, required;
-#   - `description`, required;
-#   - `view` - list of clients that are allowed to see card. Optional, forbidden for everyone by default;
-#   - `links` - an array of card links, required.
-#
-# Every link must contain following properties:
-#   - `title`;
-#   - `address`.
-root_content:
-  - title: "File storage"
-    description: "Simple indexed file storage"
-    view: any
-    links:
-      - title: "Link"
-        address: "files/"
-  - title: "Test file storage"
-    description: "Testing file storage index"
-    view: local
-    links:
-      - title: "Link"
-        address: "files-test/"
-  - title: "Gentoo binary host"
-    description: "My own binhost with generic packages"
-    view: any
-    links:
-      - title: "Link"
-        address: "packages/"
-      - title: "How to set up"
-        address: "https://wiki.gentoo.org/wiki/Binary_package_guide/en#Using_binary_packages"
-  - title: "Test graphviz"
-    description: "Testing graphviz visualizer"
-    view: any
-    links:
-      - title: "Link"
-        address: "graph/"
+        exec: /usr/local/bin/hook.sh testhook
+  # Cards handler.
+  #
+  # Display predefined cards.
+  cards:
+    endpoints:
+      # Endpoint options:
+      #   - `view` - list of clients that are allowed to use webhook. Optional, forbidden for everyone by default;
+      #   - `content` - list of predefined cards. Optional, empty by default.
+      index:
+        view: any
+        content:
+          # Every card consists of following options:
+          #   - `title`, required;
+          #   - `description`, required;
+          #   - `view` - list of clients that are allowed to see card. Optional, forbidden for everyone by default;
+          #   - `links` - an array of card links, required.
+          - title: "Test file storage"
+            description: "Testing file storage index"
+            view: local
+            links:
+              - title: "Link"
+                address: "files-test/"
+          - title: "Card with two links"
+            description: "Testing cards ability to show multiple links"
+            view: any
+            links:
+              - title: "First"
+                address: "/"
+              - title: "Second"
+                address: "/"

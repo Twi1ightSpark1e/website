@@ -51,6 +51,13 @@ type CardStruct struct {
 		Address string `yaml:"address"`
 	} `yaml:"links"`
 }
+type CardsEndpointStruct struct {
+	View string `yaml:"view,omitempty"`
+	Content []CardStruct `yaml:"content,omitempty"`
+}
+type CardsStruct struct {
+	Endpoints map[string]CardsEndpointStruct `yaml:"endpoints"`
+}
 
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
@@ -61,8 +68,8 @@ type Config struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`
 		Graphviz GraphvizStruct `yaml:"graphviz,omitempty"`
 		Webhook WebhookStruct `yaml:"webhook,omitempty"`
+		Cards CardsStruct `yaml:"cards,omitempty"`
 	} `yaml:"handlers,omitempty"`
-	RootContent []CardStruct `yaml:"root_content"`
 }
 
 var config Config

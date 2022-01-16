@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	getopt "github.com/pborman/getopt/v2"
 
@@ -34,36 +33,47 @@ func main() {
 
 	fileindexLogger := log.New("FileindexHandler")
 	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {
+		path := handlerPath(entry)
 		baseDir := http.Dir(config.Handlers.FileIndex.BasePath)
-		handler := handlers.FileindexHandler(baseDir, endpoint, fileindexLogger)
-
-		path := fmt.Sprintf("/%s/", entry)
+		handler := handlers.FileindexHandler(baseDir, path, endpoint, fileindexLogger)
 		http.Handle(path, handler)
 
-		visiblePath := strings.TrimRight(config.Handlers.FileIndex.BasePath, "/") + path
-		logger.Info.Printf("New 'fileindex' handler for '%s'", visiblePath)
+		logger.Info.Printf("New 'fileindex' handler for '%s'", path)
 	}
 
 	graphvizLogger := log.New("GraphvizLogger")
 	for entry, endpoint := range config.Handlers.Graphviz.Endpoints {
-		path := fmt.Sprintf("/%s/", entry)
-		http.Handle(path, handlers.GraphvizHandler(graphvizLogger, endpoint))
+		path := handlerPath(entry)
+		http.Handle(path, handlers.GraphvizHandler(graphvizLogger, path, endpoint))
 
 		logger.Info.Printf("New 'graphviz' handler for '%s'", path)
 	}
 
 	webhookLogger := log.New("WebhookLogger")
 	for entry, endpoint := range config.Handlers.Webhook.Endpoints {
-		path := fmt.Sprintf("/%s/", entry)
-		http.Handle(path, handlers.WebhookHandler(webhookLogger, endpoint))
+		path := handlerPath(entry)
+		http.Handle(path, handlers.WebhookHandler(webhookLogger, path, endpoint))
 
 		logger.Info.Printf("New 'webhook' handler for '%s'", path)
 	}
 
-	http.Handle("/", handlers.RootHandler(log.New("RootHandler")))
+	cardsLogger := log.New("CardsLogger")
+	for entry, endpoint := range config.Handlers.Cards.Endpoints {
+		path := handlerPath(entry)
+		http.Handle(path, handlers.CardsHandler(cardsLogger, path, endpoint))
+
+		logger.Info.Printf("New 'cards' handler for '%s'", path)
+	}
 
 	logger.Info.Printf("Listening TCP on '%s'", config.Listen)
 	logger.Err.Fatal(http.ListenAndServe(config.Listen, nil))
+}
+
+func handlerPath(name string) string {
+	if name != "index" {
+		return fmt.Sprintf("/%s/", name)
+	}
+	return "/"
 }
 
 func initialize() {

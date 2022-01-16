@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>{{.Host}} homepage</title>
+    <title>{{.LastBreadcrumb}}</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -20,7 +20,6 @@
             <li class="breadcrumb-item"><a href="{{.Address}}">{{.Title}}</a></li>
           {{end}}
           <li class="breadcrumb-item active">{{.LastBreadcrumb}}</li>
-          <!--<li class="breadcrumb-item active">{{.Host}}</li>-->
         </ol>
       </nav>
       <div class="row justify-content-center">
@@ -28,7 +27,7 @@
         <div class="card bg-light border-light m-3" style="width: 18rem;">
           <div class="card-body">
             <h5 class="card-title">{{.Title}}</h5>
-            <p class="card-text">{{.Content}}</p>
+            <p class="card-text">{{.Description}}</p>
           </div>
           <div class="card-footer">
             {{range .Links}}
