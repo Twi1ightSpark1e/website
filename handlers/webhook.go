@@ -79,4 +79,12 @@ func (h *webhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	stdin.Close()
+
+	err = cmd.Wait()
+	if err != nil {
+		h.logger.Err.Printf("Cannot wait for webhook exit: %v", err)
+	}
+
+	exitcode := cmd.ProcessState.ExitCode()
+	h.logger.Info.Printf("Webhook exited with code %d", exitcode)
 }
