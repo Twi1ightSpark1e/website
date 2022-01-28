@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 
 	getopt "github.com/pborman/getopt/v2"
 
@@ -65,8 +66,17 @@ func main() {
 		logger.Info.Printf("New 'cards' handler for '%s'", path)
 	}
 
-	logger.Info.Printf("Listening TCP on '%s'", config.Listen)
-	logger.Err.Fatal(http.ListenAndServe(config.Listen, nil))
+	var wg sync.WaitGroup
+	for _, addr := range config.Listen {
+		wg.Add(1)
+
+		logger.Info.Printf("Listening TCP on '%s'", addr)
+		go func(addr string) {
+			defer wg.Done()
+			logger.Err.Fatal(http.ListenAndServe(addr, nil))
+		}(addr)
+	}
+	wg.Wait()
 }
 
 func handlerPath(name string) string {

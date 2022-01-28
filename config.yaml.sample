@@ -20,8 +20,10 @@ auth:
   testuser1: testpasswd
   testuser2: helloworld
 
-# Web server listening IP:Port pair, required. IP address may be omitted to listen any address.
-listen: :8081
+# Web server listening IP:Port pairs, required.
+# IP address may be omitted to listen any address (both v4 and v6, if supported).
+listen:
+  - :8081
 
 # Directory with templates path (absolute or relative), required.
 templates_path: "template/"
