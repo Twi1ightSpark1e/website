@@ -1,4 +1,3 @@
-<!doctype html>
 <html lang="en">
   <head>
     <title>{{.LastBreadcrumb}}</title>
@@ -7,22 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 
     <!-- Own styles -->
     <link rel="stylesheet" href="/static/common.css"></link>
   </head>
   <body class="bg-dark">
     <div class="container">
-      <nav class="sticky-top" aria-label="breadcrumb">
-        <ol class="breadcrumb">
+      <nav class="sticky-top p-3 mb-3 bg-light rounded-bottom" aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
           {{range .Breadcrumb}}
             <li class="breadcrumb-item"><a href="{{.Address}}">{{.Title}}</a></li>
           {{end}}
           <li class="breadcrumb-item active">{{.LastBreadcrumb}}</li>
         </ol>
       </nav>
-      <div class="row justify-content-center">
+      <div class="row gx-0 justify-content-center">
         {{range .Cards}}
         <div class="card bg-light border-light m-3" style="width: 18rem;">
           <div class="card-body">
