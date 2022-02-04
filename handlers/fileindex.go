@@ -48,8 +48,7 @@ type fileEntry struct {
 }
 
 type fileindexPage struct {
-	Breadcrumb []breadcrumbItem
-	LastBreadcrumb string
+	breadcrumb
 	List []fileEntry
 }
 
@@ -70,10 +69,8 @@ func FileindexHandler(
 }
 
 func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	breadcrumb := prepareBreadcrum(r)
 	tplData := fileindexPage {
-		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
-		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
+		breadcrumb: prepareBreadcrum(r),
 	}
 
 	remoteAddr := getRemoteAddr(r)
@@ -109,7 +106,7 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tplData.List = list
 	}
 
-	err := minifyTemplate(template.Get("fileindex"), tplData, w)
+	err := minifyTemplate("fileindex", tplData, w)
 	if err != nil {
 		h.logger.Err.Print(err)
 	}

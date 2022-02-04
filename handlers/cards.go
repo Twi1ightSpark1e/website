@@ -10,8 +10,7 @@ import (
 )
 
 type cardsPage struct {
-	Breadcrumb []breadcrumbItem
-	LastBreadcrumb string
+	breadcrumb
 	Cards []config.CardStruct
 }
 
@@ -33,14 +32,12 @@ func (h *cardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	breadcrumb := prepareBreadcrum(r)
 	tplData := cardsPage {
 		Cards: h.getCards(remoteAddr),
-		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
-		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
+		breadcrumb: prepareBreadcrum(r),
 	}
 
-	err := minifyTemplate(template.Get("cards"), tplData, w)
+	err := minifyTemplate("cards", tplData, w)
 	if err != nil {
 		h.logger.Err.Print(err)
 	}

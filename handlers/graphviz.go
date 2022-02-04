@@ -16,8 +16,7 @@ import (
 )
 
 type graphvizPage struct {
-	Breadcrumb []breadcrumbItem
-	LastBreadcrumb string
+	breadcrumb
 	Image string
 	Timestamp string
 }
@@ -39,10 +38,8 @@ func GraphvizHandler(logger log.Channels, path string, endpoint config.GraphvizE
 }
 
 func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	breadcrumb := prepareBreadcrum(r)
 	tplData := graphvizPage {
-		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
-		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
+		breadcrumb: prepareBreadcrum(r),
 	}
 
 	switch r.Method {
@@ -56,7 +53,7 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !h.handleGET(w, r, &tplData) {
 			return
 		}
-		err := minifyTemplate(template.Get("graphviz"), tplData, w)
+		err := minifyTemplate("graphviz", tplData, w)
 		if err != nil {
 			h.logger.Err.Print(err)
 		}

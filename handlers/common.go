@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"io"
 	"net"
 	"net/http"
@@ -11,16 +10,20 @@ import (
 
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
+	"github.com/Twi1ightSpark1e/website/template"
 )
+
+type breadcrumb struct {
+	Breadcrumb []breadcrumbItem
+	LastBreadcrumb string
+}
 
 type breadcrumbItem struct {
 	Title string
 	Address string
 }
 
-var m = minify.New()
-
-func prepareBreadcrum(req *http.Request) []breadcrumbItem {
+func prepareBreadcrum(req *http.Request) breadcrumb {
 	result := []breadcrumbItem {
 		{
 			Title: req.Host,
@@ -43,7 +46,10 @@ func prepareBreadcrum(req *http.Request) []breadcrumbItem {
 		})
 	}
 
-	return result
+	return breadcrumb{
+		Breadcrumb: result[:len(result) - 1],
+		LastBreadcrumb: result[len(result) - 1].Title,
+	}
 }
 
 func getRemoteAddr(req *http.Request) net.IP {
@@ -55,15 +61,17 @@ func getRemoteAddr(req *http.Request) net.IP {
 	return net.ParseIP(ip)
 }
 
+var m = minify.New()
+
 func InitializeMinify() {
 	m.Add("text/html", &html.Minifier{
 		KeepDocumentTags: true,
 	})
 }
 
-func minifyTemplate(t *template.Template, data interface{}, out io.Writer) error {
+func minifyTemplate(name string, data interface{}, out io.Writer) error {
 	var buf bytes.Buffer
-	if err := t.Execute(&buf, data); err != nil {
+	if err := template.Execute(name, data, &buf); err != nil {
 		return err
 	}
 

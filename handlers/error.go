@@ -5,13 +5,10 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/Twi1ightSpark1e/website/template"
 )
 
 type errorPage struct {
-	Breadcrumb []breadcrumbItem
-	LastBreadcrumb string
+	breadcrumb
 	Error string
 }
 
@@ -44,14 +41,12 @@ func writeNotFoundError(w http.ResponseWriter, r *http.Request, errlog *log.Logg
 }
 
 func writeError(w http.ResponseWriter, r *http.Request, message error, errlog *log.Logger) {
-	breadcrumb := prepareBreadcrum(r)
 	tpl := errorPage{
-		Breadcrumb: breadcrumb[:len(breadcrumb) - 1],
-		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
+		breadcrumb: prepareBreadcrum(r),
 		Error: message.Error(),
 	}
 
-	err := minifyTemplate(template.Get("error"), tpl, w)
+	err := minifyTemplate("error", tpl, w)
 	if err != nil {
 		errlog.Print(err)
 	}
