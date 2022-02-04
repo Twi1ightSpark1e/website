@@ -51,7 +51,7 @@ func writeError(w http.ResponseWriter, r *http.Request, message error, errlog *l
 		Error: message.Error(),
 	}
 
-	err := template.Get("error").Execute(w, tpl)
+	err := minifyTemplate(template.Get("error"), tpl, w)
 	if err != nil {
 		errlog.Print(err)
 	}

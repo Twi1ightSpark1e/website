@@ -56,7 +56,7 @@ func (h *graphvizHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !h.handleGET(w, r, &tplData) {
 			return
 		}
-		err := template.Get("graphviz").Execute(w, tplData)
+		err := minifyTemplate(template.Get("graphviz"), tplData, w)
 		if err != nil {
 			h.logger.Err.Print(err)
 		}

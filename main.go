@@ -31,6 +31,7 @@ func main() {
 	configuration.Initialize(configPath)
 	config := configuration.Get()
 	template.Initialize()
+	handlers.InitializeMinify()
 
 	fileindexLogger := log.New("FileindexHandler")
 	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {

@@ -40,7 +40,7 @@ func (h *cardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		LastBreadcrumb: breadcrumb[len(breadcrumb) - 1].Title,
 	}
 
-	err := template.Get("cards").Execute(w, tplData)
+	err := minifyTemplate(template.Get("cards"), tplData, w)
 	if err != nil {
 		h.logger.Err.Print(err)
 	}

@@ -109,7 +109,7 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tplData.List = list
 	}
 
-	err := template.Get("fileindex").Execute(w, tplData)
+	err := minifyTemplate(template.Get("fileindex"), tplData, w)
 	if err != nil {
 		h.logger.Err.Print(err)
 	}
