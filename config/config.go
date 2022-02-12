@@ -24,9 +24,15 @@ type FileindexHandlerStruct struct {
 	Endpoints map[string]FileindexHandlerEndpointStruct `yaml:"endpoints"`
 }
 
+type Decoration string
+const (
+	DecorationNone Decoration = "none"
+	DecorationTinc            = "tinc"
+)
 type GraphvizEndpointStruct struct {
 	View string `yaml:"view,omitempty"`
 	Edit string `yaml:"edit,omitempty"`
+	Decoration Decoration `yaml:"decoration,omitempty"`
 }
 type GraphvizStruct struct {
 	Endpoints map[string]GraphvizEndpointStruct `yaml:"endpoints"`

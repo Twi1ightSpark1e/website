@@ -83,23 +83,14 @@ func (h *graphvizHandler) handlePUT(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	g := graphviz.New().SetLayout("circo")
+	g := graphviz.New()
 	graph, err := graphviz.ParseBytes(body)
 	if err != nil {
 		writeError(w, r, err, h.logger.Err)
 		return
 	}
 
-	// Styling graph
-	graph.SetBackgroundColor("transparent")
-
-	for node := graph.FirstNode(); node != nil; node = graph.NextNode(node) {
-		if node.Get("style") == "filled" {
-			node.SetFillColor(node.Get("color"))
-		} else {
-			node.SetStyle(cgraph.FilledNodeStyle).SetFillColor("#ffffff")
-		}
-	}
+	h.performDecoration(g, graph)
 
 	// Render graph
 	var buffer bytes.Buffer
@@ -153,4 +144,22 @@ func (h *graphvizHandler) handleGET(w http.ResponseWriter, r *http.Request, tpl 
 	}
 
 	return true
+}
+
+func (h *graphvizHandler) performDecoration(g *graphviz.Graphviz, graph *cgraph.Graph) {
+	if h.endpoint.Decoration == config.DecorationTinc {
+		g.SetLayout(graphviz.CIRCO)
+
+		graph.SetBackgroundColor("transparent")
+
+		for node := graph.FirstNode(); node != nil; node = graph.NextNode(node) {
+			if node.Get("style") == "filled" {
+				node.SetFillColor(node.Get("color"))
+			} else {
+				node.SetStyle(cgraph.FilledNodeStyle).SetFillColor("#ffffff")
+			}
+		}
+	}
+
+	// Decoration is `none`, so nothing to do here
 }

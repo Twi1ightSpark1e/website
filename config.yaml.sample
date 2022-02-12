@@ -64,9 +64,11 @@ handlers:
   graphviz:
     endpoints:
       # Endpoint options:
+      #   - `decoration` - name of decoration preset. Possible values are: `none`, `tinc`. Optional, default is `none`.
       #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
       #   - `edit` - list of clients that are allowed to perform PUT and DELETE requests. Optional, forbidden for everyone by default.
       graph:
+        decoration: tinc
         view: any
         edit: local
   # Webhook handler.
