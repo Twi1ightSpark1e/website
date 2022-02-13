@@ -212,6 +212,12 @@ func (h *fileindexHandler) uploadDir(writer http.ResponseWriter, req *http.Reque
 		if err != nil {
 			return err
 		}
+		// hide uid:gid, set them to nobody
+		th.Uid = 65534
+		th.Gid = 65534
+		th.Uname = "nobody"
+		th.Gname = "nobody"
+		// fix file path
 		th.Name = strings.TrimLeft(path[len(dir):], "/")
 		if len(th.Name) == 0 { // base directory
 			return err
