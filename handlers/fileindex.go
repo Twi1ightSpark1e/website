@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
@@ -79,6 +80,7 @@ func FileindexHandler(
 	h := &fileindexHandler{root, path, endpoint, logger, map[string]uploader{}}
 	h.uploaders = map[string]uploader {
 		"tar": func (w http.ResponseWriter, r *http.Request) (bool, error) { return h.uploadTar(w, r) },
+		"gz": func (w http.ResponseWriter, r *http.Request) (bool, error) { return h.uploadGz(w, r) },
 		"zst": func (w http.ResponseWriter, r *http.Request) (bool, error) { return h.uploadZst(w, r) },
 	}
 
@@ -264,6 +266,24 @@ func (h *fileindexHandler) uploadTar(w http.ResponseWriter, r *http.Request) (bo
 
 	go h.prepareTar(bufw, dir)
 	written, err := io.Copy(w, bufr)
+	return written > 0, err
+}
+
+func (h *fileindexHandler) uploadGz(w http.ResponseWriter, r *http.Request) (bool, error) {
+	dir := r.URL.Path[1:]
+	filename := fmt.Sprintf("%s.tar.gz", filepath.Base(r.URL.Path))
+
+	w.Header().Add("Content-Type", "application/gzip")
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	bufr, bufw := io.Pipe()
+	defer bufr.Close()
+
+	compressor := gzip.NewWriter(w)
+	defer compressor.Close()
+
+	go h.prepareTar(bufw, dir)
+	written, err := io.Copy(compressor, bufr)
 	return written > 0, err
 }
 
