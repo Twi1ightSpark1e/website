@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
@@ -46,6 +47,8 @@ func ByteCountIEC(b int64) string {
 	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
+type uploader func(w http.ResponseWriter, r *http.Request) (bool, error)
+
 type fileEntry struct {
 	Name string
 	Size string
@@ -63,6 +66,7 @@ type fileindexHandler struct {
 	path string
 	endpoint config.FileindexHandlerEndpointStruct
 	logger log.Channels
+	uploaders map[string]uploader
 }
 func FileindexHandler(
 	root http.FileSystem,
@@ -71,7 +75,14 @@ func FileindexHandler(
 	logger log.Channels,
 ) http.Handler {
 	template.AssertExists("fileindex", logger)
-	return &fileindexHandler{root, path, endpoint, logger}
+
+	h := &fileindexHandler{root, path, endpoint, logger, map[string]uploader{}}
+	h.uploaders = map[string]uploader {
+		"tar": func (w http.ResponseWriter, r *http.Request) (bool, error) { return h.uploadTar(w, r) },
+		"zst": func (w http.ResponseWriter, r *http.Request) (bool, error) { return h.uploadZst(w, r) },
+	}
+
+	return h
 }
 
 func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -177,8 +188,10 @@ func (h *fileindexHandler) uploadFile(writer http.ResponseWriter, req *http.Requ
 		return false, err
 	}
 
-	if stat.Mode().IsDir() && req.URL.Query().Get("type") == "tar" {
-		return h.uploadDir(writer, req)
+	if stat.Mode().IsDir() {
+		if uploader, ok := h.uploaders[req.URL.Query().Get("type")]; ok {
+			return uploader(writer, req)
+		}
 	}
 
 	if !stat.Mode().IsRegular() {
@@ -189,21 +202,17 @@ func (h *fileindexHandler) uploadFile(writer http.ResponseWriter, req *http.Requ
 	return true, nil
 }
 
-func (h *fileindexHandler) uploadDir(writer http.ResponseWriter, req *http.Request) (bool, error) {
-	dir := req.URL.Path[1:]
-	filename := fmt.Sprintf("%s.tar", filepath.Base(req.URL.Path))
+func (h *fileindexHandler) prepareTar(w io.WriteCloser, dir string) error {
+	defer w.Close()
 
-	writer.Header().Add("Content-Type", "application/x-tar")
-	writer.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-
-	tw := tar.NewWriter(writer)
+	tw := tar.NewWriter(w)
 	defer tw.Close()
 
 	fsroot := filter.Skip(h.root, func (path string, fi os.FileInfo) bool {
 		return h.isHiddenPath(path)
 	})
 
-	err := vfsutil.Walk(fsroot, dir, func (path string, info fs.FileInfo, err error) error {
+	return vfsutil.Walk(fsroot, dir, func (path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -212,11 +221,13 @@ func (h *fileindexHandler) uploadDir(writer http.ResponseWriter, req *http.Reque
 		if err != nil {
 			return err
 		}
+
 		// hide uid:gid, set them to nobody
 		th.Uid = 65534
 		th.Gid = 65534
 		th.Uname = "nobody"
 		th.Gname = "nobody"
+
 		// fix file path
 		th.Name = strings.TrimLeft(path[len(dir):], "/")
 		if len(th.Name) == 0 { // base directory
@@ -239,8 +250,42 @@ func (h *fileindexHandler) uploadDir(writer http.ResponseWriter, req *http.Reque
 		_, err = io.Copy(tw, fh)
 		return err
 	})
+}
 
-	return err != nil, err
+func (h *fileindexHandler) uploadTar(w http.ResponseWriter, r *http.Request) (bool, error) {
+	dir := r.URL.Path[1:]
+	filename := fmt.Sprintf("%s.tar", filepath.Base(r.URL.Path))
+
+	w.Header().Add("Content-Type", "application/x-tar")
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	bufr, bufw := io.Pipe()
+	defer bufr.Close()
+
+	go h.prepareTar(bufw, dir)
+	written, err := io.Copy(w, bufr)
+	return written > 0, err
+}
+
+func (h *fileindexHandler) uploadZst(w http.ResponseWriter, r *http.Request) (bool, error) {
+	dir := r.URL.Path[1:]
+	filename := fmt.Sprintf("%s.tar.zst", filepath.Base(r.URL.Path))
+
+	w.Header().Add("Content-Type", "application/zstd")
+	w.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	bufr, bufw := io.Pipe()
+	defer bufr.Close()
+
+	compressor, err := zstd.NewWriter(w)
+	if err != nil {
+		return false, err
+	}
+	defer compressor.Close()
+
+	go h.prepareTar(bufw, dir)
+	written, err := io.Copy(compressor, bufr)
+	return written > 0, err
 }
 
 func (h *fileindexHandler) isHiddenPath(p string) bool {
