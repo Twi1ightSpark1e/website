@@ -1,17 +1,23 @@
 package handlers
 
 import (
+	"archive/tar"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
+	"github.com/shurcooL/httpfs/filter"
+	"github.com/shurcooL/httpfs/vfsutil"
 )
 
 type filterPred func (item *string) bool
@@ -171,6 +177,10 @@ func (h *fileindexHandler) uploadFile(writer http.ResponseWriter, req *http.Requ
 		return false, err
 	}
 
+	if stat.Mode().IsDir() && req.URL.Query().Get("type") == "tar" {
+		return h.uploadDir(writer, req)
+	}
+
 	if !stat.Mode().IsRegular() {
 		return false, nil
 	}
@@ -179,11 +189,60 @@ func (h *fileindexHandler) uploadFile(writer http.ResponseWriter, req *http.Requ
 	return true, nil
 }
 
+func (h *fileindexHandler) uploadDir(writer http.ResponseWriter, req *http.Request) (bool, error) {
+	dir := req.URL.Path[1:]
+	filename := fmt.Sprintf("%s.tar", filepath.Base(req.URL.Path))
+
+	writer.Header().Add("Content-Type", "application/x-tar")
+	writer.Header().Add("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+	tw := tar.NewWriter(writer)
+	defer tw.Close()
+
+	fsroot := filter.Skip(h.root, func (path string, fi os.FileInfo) bool {
+		return h.isHiddenPath(path)
+	})
+
+	err := vfsutil.Walk(fsroot, dir, func (path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		th, err := tar.FileInfoHeader(info, "") // TODO: better link argument?
+		if err != nil {
+			return err
+		}
+		th.Name = strings.TrimLeft(path[len(dir):], "/")
+		if len(th.Name) == 0 { // base directory
+			return err
+		}
+
+		fh, err := h.root.Open(path)
+		if err != nil {
+			return err
+		}
+		defer fh.Close()
+
+		if err = tw.WriteHeader(th); err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return err
+		}
+
+		_, err = io.Copy(tw, fh)
+		return err
+	})
+
+	return err != nil, err
+}
+
 func (h *fileindexHandler) isHiddenPath(p string) bool {
 	hidden := config.Get().Handlers.FileIndex.Hide
 	dirname, filename := path.Split(p)
 	for _, hiddenEntry := range hidden {
-		if filename == hiddenEntry || strings.Contains(dirname, hiddenEntry) {
+		hiddenFolder := fmt.Sprintf("/%s/", hiddenEntry)
+		if filename == hiddenEntry || strings.Contains(dirname, hiddenFolder) {
 			return true
 		}
 	}

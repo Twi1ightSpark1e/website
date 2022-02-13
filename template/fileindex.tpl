@@ -7,6 +7,9 @@
 
 {{template "body.tpl" .}}
   {{if .List}}
+  <a href="?type=tar">
+    <button type="button" class="btn btn-light">Download as .tar</button>
+  </a>
   <table class="table table-striped table-sm table-hover table-dark">
     <thead>
       <tr>
