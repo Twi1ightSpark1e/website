@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -70,12 +69,19 @@ func InitializeMinify() {
 }
 
 func minifyTemplate(name string, data interface{}, out io.Writer) error {
-	var buf bytes.Buffer
-	if err := template.Execute(name, data, &buf); err != nil {
-		return err
-	}
+	bufr, bufw := io.Pipe()
+	defer bufr.Close()
 
-	if err := m.Minify("text/html", out, &buf); err != nil {
+	go func() {
+		err := template.Execute(name, data, bufw)
+		if err != nil {
+			bufw.CloseWithError(err)
+		} else {
+			bufw.Close()
+		}
+	}()
+
+	if err := m.Minify("text/html", out, bufr); err != nil {
 		return err
 	}
 
