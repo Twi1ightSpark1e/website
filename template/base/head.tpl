@@ -8,3 +8,8 @@
 
 <!-- Own styles -->
 <link rel="stylesheet" href="/static/common.css"></link>
+
+<!-- Icons https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs -->
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
