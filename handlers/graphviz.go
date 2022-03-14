@@ -148,7 +148,11 @@ func (h *graphvizHandler) handleGET(w http.ResponseWriter, r *http.Request, tpl 
 
 func (h *graphvizHandler) performDecoration(g *graphviz.Graphviz, graph *cgraph.Graph) {
 	if h.endpoint.Decoration == config.DecorationTinc {
-		g.SetLayout(graphviz.CIRCO)
+		layout := graphviz.CIRCO
+		if graph.NumberNodes() >= 10 {
+			layout = graphviz.FDP
+		}
+		g.SetLayout(layout)
 
 		graph.SetBackgroundColor("transparent")
 
