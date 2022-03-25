@@ -150,7 +150,7 @@ func (h *graphvizHandler) performDecoration(g *graphviz.Graphviz, graph *cgraph.
 	if h.endpoint.Decoration == config.DecorationTinc {
 		layout := graphviz.CIRCO
 		if graph.NumberNodes() >= 10 {
-			layout = graphviz.FDP
+			layout = graphviz.DOT
 		}
 		g.SetLayout(layout)
 
