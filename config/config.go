@@ -15,8 +15,9 @@ import (
 )
 
 type FileindexHandlerEndpointStruct struct {
-	View string `yaml:"view,omitempty"`
 	Auth []string `yaml:"auth,omitempty"`
+	View string `yaml:"view,omitempty"`
+	Upload string `yaml:"upload,omitempty"`
 }
 type FileindexHandlerStruct struct {
 	BasePath string `yaml:"base_path"`

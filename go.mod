@@ -3,6 +3,7 @@ module github.com/Twi1ightSpark1e/website
 go 1.16
 
 require (
+	github.com/flytam/filenamify v1.0.0 // indirect
 	github.com/goccy/go-graphviz v0.0.9 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect

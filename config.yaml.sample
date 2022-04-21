@@ -49,13 +49,15 @@ handlers:
       - "noindex"
     endpoints:
       # Endpoint options:
+      #   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default;
       #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
-      #   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default.
+      #   - `upload` - list of clients that are allowed to upload files here. Optional, forbidden for everyone by default.
       files-test:
         view: local
         auth:
           - testuser1
           - testuser2
+        upload: local
       static:
         view: any
   # Graphviz handler.

@@ -13,11 +13,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/klauspost/compress/gzip"
-	"github.com/klauspost/compress/zstd"
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
+	"github.com/flytam/filenamify"
+	"github.com/klauspost/compress/gzip"
+	"github.com/klauspost/compress/zstd"
 	"github.com/shurcooL/httpfs/filter"
 	"github.com/shurcooL/httpfs/vfsutil"
 )
@@ -59,6 +60,7 @@ type fileEntry struct {
 
 type fileindexPage struct {
 	breadcrumb
+	AllowUpload bool
 	List []fileEntry
 }
 
@@ -88,14 +90,13 @@ func FileindexHandler(
 }
 
 func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tplData := fileindexPage {
-		breadcrumb: prepareBreadcrum(r),
-	}
-
 	remoteAddr := getRemoteAddr(r)
 	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
-	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
+	allowUpload := config.IsAllowedByACL(remoteAddr, h.endpoint.Upload)
+	allowPost := r.Method == http.MethodPost && allowUpload
+	allowView := r.Method != http.MethodPost && config.IsAllowedByACL(remoteAddr, h.endpoint.View)
+	if !allowPost && !allowView {
 		writeNotFoundError(w, r, h.logger.Err)
 		return
 	}
@@ -104,6 +105,10 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tplData := fileindexPage {
+		breadcrumb: prepareBreadcrum(r),
+		AllowUpload: allowUpload,
+	}
 	if !config.Authenticate(r, h.endpoint.Auth) {
 		authHeader := fmt.Sprintf(`Basic realm="Authentication required to use %s"`, tplData.LastBreadcrumb)
 		w.Header().Set("WWW-Authenticate", authHeader)
@@ -111,7 +116,14 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if uploaded, err := h.uploadFile(w, r); uploaded {
+	if recv, err := h.recvFile(w, r); recv {
+		return
+	} else if err != nil {
+		writeError(w, r, err, h.logger.Err)
+		return
+	}
+
+	if sent, err := h.sendFile(w, r); sent {
 		return
 	} else if err != nil {
 		writeNotFoundError(w, r, h.logger.Err)
@@ -179,7 +191,7 @@ func (h *fileindexHandler) prepareFileList(req *http.Request) ([]fileEntry, erro
 	return result, err
 }
 
-func (h *fileindexHandler) uploadFile(writer http.ResponseWriter, req *http.Request) (bool, error) {
+func (h *fileindexHandler) sendFile(writer http.ResponseWriter, req *http.Request) (bool, error) {
 	file, err := h.root.Open(req.URL.Path)
 	if err != nil {
 		return false, err
@@ -318,4 +330,41 @@ func (h *fileindexHandler) isHiddenPath(p string) bool {
 		}
 	}
 	return false
+}
+
+func (h *fileindexHandler) recvFile(w http.ResponseWriter, r * http.Request) (bool, error) {
+	if r.Method != http.MethodPost {
+		return false, nil
+	}
+
+	r.ParseMultipartForm(1024 * 1024)
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		return false, errors.New("No file chosen")
+	}
+	defer file.Close()
+
+	filename, err := filenamify.Filenamify(header.Filename, filenamify.Options{
+		Replacement: "_",
+	})
+	if err != nil {
+		return false, err
+	}
+	filepath := r.URL.Path + filename
+	h.logger.Info.Printf("Receiving file '%s'", filepath)
+
+	destFile, err := os.Create(config.Get().Handlers.FileIndex.BasePath + filepath)
+	if err != nil {
+		return false, err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, file)
+	if err != nil {
+		return false, err
+	}
+
+	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+	return true, nil
 }
