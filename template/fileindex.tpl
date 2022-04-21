@@ -7,11 +7,21 @@
 
 {{template "body.tpl" .}}
   {{if .List}}
-  <div class="download-as">
-    <span class="text-light">Download as:</span>
-    <a href="?type=tar"><button type="button" class="btn btn-light">.tar</button></a>
-    <a href="?type=gz"><button type="button" class="btn btn-light">.tar.gz</button></a>
-    <a href="?type=zst"><button type="button" class="btn btn-light">.tar.zst</button></a>
+  <div class="control">
+    <div class="download-as">
+      <span class="text-light">Download as:</span>
+      <a href="?type=tar"><button type="button" class="btn btn-light">.tar</button></a>
+      <a href="?type=gz"><button type="button" class="btn btn-light">.tar.gz</button></a>
+      <a href="?type=zst"><button type="button" class="btn btn-light">.tar.zst</button></a>
+    </div>
+    {{if .AllowUpload}}
+    <form method="post" enctype="multipart/form-data">
+      <div class="upload">
+        <input class="form-control" type="file" id="file" name="file">
+        <input class="btn btn-light" type="submit" value="Upload">
+      </div>
+    </form>
+    {{end}}
   </div>
   <table class="table table-striped table-sm table-hover table-dark">
     <thead>
