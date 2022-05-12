@@ -66,6 +66,14 @@ type CardsStruct struct {
 	Endpoints map[string]CardsEndpointStruct `yaml:"endpoints"`
 }
 
+type MarkdownEndpointStruct struct {
+	View string `yaml:"view,omitempty"`
+}
+type MarkdownStruct struct {
+	Endpoints map[string]MarkdownEndpointStruct `yaml:"endpoints"`
+	BasePath string `yaml:"base_path"`
+}
+
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
@@ -76,6 +84,7 @@ type Config struct {
 		Graphviz GraphvizStruct `yaml:"graphviz,omitempty"`
 		Webhook WebhookStruct `yaml:"webhook,omitempty"`
 		Cards CardsStruct `yaml:"cards,omitempty"`
+		Markdown MarkdownStruct `yaml:"markdown,omitempty"`
 	} `yaml:"handlers,omitempty"`
 }
 

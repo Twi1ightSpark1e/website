@@ -25,6 +25,8 @@ auth:
 listen:
   - :8081
 
+# Base directory, optional. Used as an anchor for multiple handlers.
+base_path: &base_path "/mnt"
 # Directory with templates path (absolute or relative), required.
 templates_path: "template/"
 
@@ -34,6 +36,7 @@ templates_path: "template/"
 #   - `fileindex`, optional;
 #   - `graphviz`, optional;
 #   - `webhook`, optional;
+#   - `markdown`, optional;
 #   - `cards`, optional.
 #
 # Special endpoint name `index` is used to set up handler for main page.
@@ -44,7 +47,7 @@ handlers:
   #   - `base_path` - absolute path - root of each endpoint, required;
   #   - `hide` - an array of names that must be hidden from index, optional.
   fileindex:
-    base_path: "/mnt/"
+    base_path: *base_path
     hide:
       - "noindex"
     endpoints:
@@ -90,6 +93,17 @@ handlers:
           Content-Type: application/json
           X-Gitlab-Token: somerandomstring
         exec: /usr/local/bin/hook.sh testhook
+  # Markdown handler.
+  #
+  # Render markdown file. Options:
+  #   - `base_path` - absolute path - root of each endpoint, required.
+  markdown:
+    base_path: *base_path
+    endpoints:
+      # Endpoint options:
+      #   - `view` - list of clients that are allowed to view file. Optional, forbidden for everyone by default;
+      readme.md:
+        view: any
   # Cards handler.
   #
   # Display predefined cards.

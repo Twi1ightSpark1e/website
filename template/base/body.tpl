@@ -1,3 +1,3 @@
-<body class="bg-dark">
+<body class="bg-dark text-white">
   <div class="container">
     {{template "breadcrumb.tpl" .}}

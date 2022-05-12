@@ -67,6 +67,17 @@ func main() {
 		logger.Info.Printf("New 'cards' handler for '%s'", path)
 	}
 
+	markdownLogger := log.New("MarkdownLogger")
+	for entry, endpoint := range config.Handlers.Markdown.Endpoints {
+		path := handlerPath(entry)
+		path = path[:len(path)-1]
+		baseDir := http.Dir(config.Handlers.Markdown.BasePath)
+		handler := handlers.MarkdownHandler(baseDir, path, endpoint, markdownLogger)
+		http.Handle(path, handler)
+
+		logger.Info.Printf("New 'markdown' handler for '%s'", path)
+	}
+
 	var wg sync.WaitGroup
 	for _, addr := range config.Listen {
 		wg.Add(1)

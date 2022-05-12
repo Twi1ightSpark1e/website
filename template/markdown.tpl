@@ -5,9 +5,7 @@
 </head>
 
 {{template "body.tpl" .}}
-  <div class="justify-content-center">
-    <h4 class="text-center">{{.Error}}</h4>
-  </div>
+{{.Content}}
 {{template "footer.tpl" .}}
 
 </html>
