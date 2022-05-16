@@ -7,8 +7,8 @@
 
 {{template "body.tpl" .}}
   {{if .List}}
-  <div class="control">
-    <div class="download-as">
+  <div class="d-flex flex-column flex-lg-row justify-content-between">
+    <div class="mb-2 mb-lg-0 download-as">
       <span class="text-light">Download as:</span>
       <a href="?type=tar"><button type="button" class="btn btn-light">.tar</button></a>
       <a href="?type=gz"><button type="button" class="btn btn-light">.tar.gz</button></a>
@@ -16,8 +16,8 @@
     </div>
     {{if .AllowUpload}}
     <form method="post" enctype="multipart/form-data">
-      <div class="upload">
-        <input class="form-control" type="file" id="file" name="file">
+      <div class="d-flex flex-row">
+        <input class="form-control me-1" type="file" id="file" name="file">
         <input class="btn btn-light" type="submit" value="Upload">
       </div>
     </form>
