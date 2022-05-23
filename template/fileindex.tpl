@@ -43,6 +43,14 @@
       {{end}}
     </tbody>
   </table>
+  {{if .ShowMarkdown}}
+    <div class="border rounded-top p-3">
+      <h2>{{.MarkdownTitle}}</h2>
+    </div>
+    <div class="border rounded-bottom p-3 mb-2">
+      {{.MarkdownContent}}
+    </div>
+  {{end}}
   {{end}}
 {{template "footer.tpl" .}}
 

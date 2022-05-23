@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
-	"github.com/Twi1ightSpark1e/website/template"
+	tpl "github.com/Twi1ightSpark1e/website/template"
 	"github.com/flytam/filenamify"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
@@ -62,6 +63,10 @@ type fileindexPage struct {
 	breadcrumb
 	AllowUpload bool
 	List []fileEntry
+
+	ShowMarkdown bool
+	MarkdownTitle string
+	MarkdownContent template.HTML
 }
 
 type fileindexHandler struct {
@@ -77,7 +82,7 @@ func FileindexHandler(
 	endpoint config.FileindexHandlerEndpointStruct,
 	logger log.Channels,
 ) http.Handler {
-	template.AssertExists("fileindex", logger)
+	tpl.AssertExists("fileindex", logger)
 
 	h := &fileindexHandler{root, path, endpoint, logger, map[string]uploader{}}
 	h.uploaders = map[string]uploader {
@@ -135,6 +140,19 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		tplData.List = list
+
+		show, name := h.showMarkdown(list)
+		tplData.ShowMarkdown = show
+		tplData.MarkdownTitle = name
+		if show {
+			path := fmt.Sprintf("%s/%s", r.URL.Path, name)
+			md, err := h.loadMarkdown(path)
+			if err != nil {
+				tplData.ShowMarkdown = false
+			} else {
+				tplData.MarkdownContent = md
+			}
+		}
 	}
 
 	err := minifyTemplate("fileindex", tplData, w)
@@ -367,4 +385,29 @@ func (h *fileindexHandler) recvFile(w http.ResponseWriter, r * http.Request) (bo
 
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 	return true, nil
+}
+
+func (h *fileindexHandler) showMarkdown(list []fileEntry) (bool, string) {
+	for _, file := range list {
+		if file.IsDir || !config.UseAsMarkdownPreview(file.Name) {
+			continue
+		}
+		return true, file.Name
+	}
+	return false, ""
+}
+
+func (h *fileindexHandler) loadMarkdown(path string) (template.HTML, error) {
+	file, err := h.root.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	buf, err := io.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+
+	return renderMarkdown(buf), nil
 }

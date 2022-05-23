@@ -22,6 +22,7 @@ type FileindexHandlerEndpointStruct struct {
 type FileindexHandlerStruct struct {
 	BasePath string `yaml:"base_path"`
 	Hide []string `yaml:"hide,omitempty"`
+	Markdown []string `yaml:"markdown,omitempty"`
 	Endpoints map[string]FileindexHandlerEndpointStruct `yaml:"endpoints"`
 }
 
@@ -199,5 +200,14 @@ func Authenticate(r *http.Request, allowedUsers []string) bool {
 		}
 	}
 
+	return false
+}
+
+func UseAsMarkdownPreview(name string) bool {
+	for _, entry := range config.Handlers.FileIndex.Markdown {
+		if name == entry {
+			return true
+		}
+	}
 	return false
 }
