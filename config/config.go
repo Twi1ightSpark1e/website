@@ -14,15 +14,21 @@ import (
 	"github.com/Twi1ightSpark1e/website/log"
 )
 
+type PreviewType string
+const (
+	PreviewNone PreviewType = ""
+	PreviewPre              = "pre"
+	PreviewPost             = "post"
+)
 type FileindexHandlerEndpointStruct struct {
 	Auth []string `yaml:"auth,omitempty"`
 	View string `yaml:"view,omitempty"`
 	Upload string `yaml:"upload,omitempty"`
+	Preview PreviewType `yaml:"preview,omitempty"`
 }
 type FileindexHandlerStruct struct {
-	BasePath string `yaml:"base_path"`
 	Hide []string `yaml:"hide,omitempty"`
-	Markdown []string `yaml:"markdown,omitempty"`
+	Preview []string `yaml:"preview,omitempty"`
 	Endpoints map[string]FileindexHandlerEndpointStruct `yaml:"endpoints"`
 }
 
@@ -72,14 +78,19 @@ type MarkdownEndpointStruct struct {
 }
 type MarkdownStruct struct {
 	Endpoints map[string]MarkdownEndpointStruct `yaml:"endpoints"`
-	BasePath string `yaml:"base_path"`
+}
+
+type PathsStruct struct {
+	Base string `yaml:"base"`
+	Chroot bool `yaml:"chroot,omitempty"`
+	Templates string `yaml:"templates"`
 }
 
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
 	Listen []string `yaml:"listen"`
-	TemplatesPath string `yaml:"templates_path"`
+	Paths PathsStruct `yaml:"paths"`
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`
 		Graphviz GraphvizStruct `yaml:"graphviz,omitempty"`
@@ -200,14 +211,5 @@ func Authenticate(r *http.Request, allowedUsers []string) bool {
 		}
 	}
 
-	return false
-}
-
-func UseAsMarkdownPreview(name string) bool {
-	for _, entry := range config.Handlers.FileIndex.Markdown {
-		if name == entry {
-			return true
-		}
-	}
 	return false
 }

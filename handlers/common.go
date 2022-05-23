@@ -12,6 +12,19 @@ import (
 	"github.com/Twi1ightSpark1e/website/template"
 )
 
+type filterPred func (item *string) bool
+func filterStr(data []string, predicate filterPred) []string {
+	result := make([]string, 0)
+
+	for _, item := range data {
+		if predicate(&item) {
+			result = append(result, item)
+		}
+	}
+
+	return result
+}
+
 type breadcrumb struct {
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string

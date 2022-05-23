@@ -33,10 +33,11 @@ func main() {
 	template.Initialize()
 	handlers.InitializeMinify()
 
+	baseDir := http.Dir(config.Paths.Base)
+
 	fileindexLogger := log.New("FileindexHandler")
 	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {
 		path := handlerPath(entry)
-		baseDir := http.Dir(config.Handlers.FileIndex.BasePath)
 		handler := handlers.FileindexHandler(baseDir, path, endpoint, fileindexLogger)
 		http.Handle(path, handler)
 
@@ -71,7 +72,6 @@ func main() {
 	for entry, endpoint := range config.Handlers.Markdown.Endpoints {
 		path := handlerPath(entry)
 		path = path[:len(path)-1]
-		baseDir := http.Dir(config.Handlers.Markdown.BasePath)
 		handler := handlers.MarkdownHandler(baseDir, path, endpoint, markdownLogger)
 		http.Handle(path, handler)
 
