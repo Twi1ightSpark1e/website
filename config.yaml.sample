@@ -56,8 +56,8 @@ handlers:
       #   - `upload` - list of clients that are allowed to upload files here. Optional, forbidden for everyone by default.
       #   - `preview` - position of markdown preview. Optional, no preview shown by default. Valid values are:
       #     - "" - do not show preview;
-      #     - "pre" - show preview before filetable;
-      #     - "post" - show preview after filetable.
+      #     - `pre` - show preview before filetable;
+      #     - `post` - show preview after filetable.
       files-test:
         view: local
         auth:
@@ -99,8 +99,7 @@ handlers:
         exec: /usr/local/bin/hook.sh testhook
   # Markdown handler.
   #
-  # Render markdown file. Options:
-  #   - `base_path` - absolute path - root of each endpoint, required.
+  # Render markdown file.
   markdown:
     endpoints:
       # Endpoint options:
