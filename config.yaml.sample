@@ -25,8 +25,11 @@ auth:
 listen:
   - :8081
 
-# Directory with templates path (absolute or relative), required.
-templates_path: "template/"
+paths:
+  # Base working directory, required
+  base: "/mnt"
+  # Directory with templates path (absolute or relative), required.
+  templates: "template/"
 
 # Handlers section, optional.
 #
@@ -34,6 +37,7 @@ templates_path: "template/"
 #   - `fileindex`, optional;
 #   - `graphviz`, optional;
 #   - `webhook`, optional;
+#   - `markdown`, optional;
 #   - `cards`, optional.
 #
 # Special endpoint name `index` is used to set up handler for main page.
@@ -41,10 +45,8 @@ handlers:
   # Fileindex handler.
   #
   # Displays table of files inside a directory. Hidden names are not shown but available. Options:
-  #   - `base_path` - absolute path - root of each endpoint, required;
   #   - `hide` - an array of names that must be hidden from index, optional.
   fileindex:
-    base_path: "/mnt/"
     hide:
       - "noindex"
     endpoints:
@@ -52,12 +54,17 @@ handlers:
       #   - `auth` - list of users that are allowed to see endpoint content. Optional, allowed for everyone by default;
       #   - `view` - list of clients that are allowed to see endpoint content. Optional, forbidden for everyone by default;
       #   - `upload` - list of clients that are allowed to upload files here. Optional, forbidden for everyone by default.
+      #   - `preview` - position of markdown preview. Optional, no preview shown by default. Valid values are:
+      #     - "" - do not show preview;
+      #     - "pre" - show preview before filetable;
+      #     - "post" - show preview after filetable.
       files-test:
         view: local
         auth:
           - testuser1
           - testuser2
         upload: local
+        preview: post
       static:
         view: any
   # Graphviz handler.
@@ -90,6 +97,16 @@ handlers:
           Content-Type: application/json
           X-Gitlab-Token: somerandomstring
         exec: /usr/local/bin/hook.sh testhook
+  # Markdown handler.
+  #
+  # Render markdown file. Options:
+  #   - `base_path` - absolute path - root of each endpoint, required.
+  markdown:
+    endpoints:
+      # Endpoint options:
+      #   - `view` - list of clients that are allowed to view file. Optional, forbidden for everyone by default;
+      readme.md:
+        view: any
   # Cards handler.
   #
   # Display predefined cards.

@@ -14,13 +14,19 @@ import (
 	"github.com/Twi1ightSpark1e/website/log"
 )
 
+type PreviewType string
+const (
+	PreviewNone PreviewType = ""
+	PreviewPre              = "pre"
+	PreviewPost             = "post"
+)
 type FileindexHandlerEndpointStruct struct {
 	Auth []string `yaml:"auth,omitempty"`
 	View string `yaml:"view,omitempty"`
 	Upload string `yaml:"upload,omitempty"`
+	Preview PreviewType `yaml:"preview,omitempty"`
 }
 type FileindexHandlerStruct struct {
-	BasePath string `yaml:"base_path"`
 	Hide []string `yaml:"hide,omitempty"`
 	Endpoints map[string]FileindexHandlerEndpointStruct `yaml:"endpoints"`
 }
@@ -66,16 +72,29 @@ type CardsStruct struct {
 	Endpoints map[string]CardsEndpointStruct `yaml:"endpoints"`
 }
 
+type MarkdownEndpointStruct struct {
+	View string `yaml:"view,omitempty"`
+}
+type MarkdownStruct struct {
+	Endpoints map[string]MarkdownEndpointStruct `yaml:"endpoints"`
+}
+
+type PathsStruct struct {
+	Base string `yaml:"base"`
+	Templates string `yaml:"templates"`
+}
+
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
 	Listen []string `yaml:"listen"`
-	TemplatesPath string `yaml:"templates_path"`
+	Paths PathsStruct `yaml:"paths"`
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`
 		Graphviz GraphvizStruct `yaml:"graphviz,omitempty"`
 		Webhook WebhookStruct `yaml:"webhook,omitempty"`
 		Cards CardsStruct `yaml:"cards,omitempty"`
+		Markdown MarkdownStruct `yaml:"markdown,omitempty"`
 	} `yaml:"handlers,omitempty"`
 }
 

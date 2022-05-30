@@ -2,15 +2,30 @@ package handlers
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"net"
 	"net/http"
 	"strings"
 
+	"github.com/Twi1ightSpark1e/website/config"
+	tpl "github.com/Twi1ightSpark1e/website/template"
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/html"
-	"github.com/Twi1ightSpark1e/website/template"
 )
+
+type filterPred func (item *string) bool
+func filterStr(data []string, predicate filterPred) []string {
+	result := make([]string, 0)
+
+	for _, item := range data {
+		if predicate(&item) {
+			result = append(result, item)
+		}
+	}
+
+	return result
+}
 
 type breadcrumb struct {
 	Breadcrumb []breadcrumbItem
@@ -73,7 +88,7 @@ func minifyTemplate(name string, data interface{}, out io.Writer) error {
 	defer bufr.Close()
 
 	go func() {
-		err := template.Execute(name, data, bufw)
+		err := tpl.Execute(name, data, bufw)
 		if err != nil {
 			bufw.CloseWithError(err)
 		} else {
@@ -86,4 +101,32 @@ func minifyTemplate(name string, data interface{}, out io.Writer) error {
 	}
 
 	return nil
+}
+
+type inlineMarkdown struct {
+	MarkdownVisibility config.PreviewType
+	MarkdownTitle string
+	MarkdownContent template.HTML
+}
+
+func prepareInlineMarkdown(ptype config.PreviewType, file http.File) inlineMarkdown {
+	res := inlineMarkdown{
+		MarkdownVisibility: ptype,
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		res.MarkdownVisibility = config.PreviewNone
+		return res
+	}
+	res.MarkdownTitle = stat.Name()
+
+	buf, err := io.ReadAll(file)
+	if err != nil {
+		res.MarkdownVisibility = config.PreviewNone
+		return res
+	}
+
+	res.MarkdownContent = renderMarkdown(buf)
+	return res
 }

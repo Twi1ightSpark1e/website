@@ -12,7 +12,7 @@
 
 {{template "body.tpl" .}}
   <div class="row justify-content-center">
-    <h3 class="text-light text-center">Last update: {{.Timestamp}}</h3>
+    <h3 class="text-center">Last update: {{.Timestamp}}</h3>
     <img></img>
   </div>
 {{template "footer.tpl" .}}

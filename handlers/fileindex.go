@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"net/http"
@@ -15,7 +16,8 @@ import (
 
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
-	"github.com/Twi1ightSpark1e/website/template"
+	tpl "github.com/Twi1ightSpark1e/website/template"
+	"github.com/Twi1ightSpark1e/website/util"
 	"github.com/flytam/filenamify"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zstd"
@@ -23,30 +25,8 @@ import (
 	"github.com/shurcooL/httpfs/vfsutil"
 )
 
-type filterPred func (item *string) bool
-func filterStr(data []string, predicate filterPred) []string {
-	result := make([]string, 0)
-
-	for _, item := range data {
-		if predicate(&item) {
-			result = append(result, item)
-		}
-	}
-
-	return result
-}
-
-func ByteCountIEC(b int64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-	div, exp := int64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+func useAsPreview(name string) bool {
+	return strings.EqualFold(name, "readme.md")
 }
 
 type uploader func(w http.ResponseWriter, r *http.Request) (bool, error)
@@ -60,6 +40,8 @@ type fileEntry struct {
 
 type fileindexPage struct {
 	breadcrumb
+	inlineMarkdown
+
 	AllowUpload bool
 	List []fileEntry
 }
@@ -77,7 +59,7 @@ func FileindexHandler(
 	endpoint config.FileindexHandlerEndpointStruct,
 	logger log.Channels,
 ) http.Handler {
-	template.AssertExists("fileindex", logger)
+	tpl.AssertExists("fileindex", logger)
 
 	h := &fileindexHandler{root, path, endpoint, logger, map[string]uploader{}}
 	h.uploaders = map[string]uploader {
@@ -135,6 +117,16 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		tplData.List = list
+
+		show, name := h.showMarkdown(list)
+		ptype := config.PreviewNone
+		if show {
+			ptype = h.endpoint.Preview
+		}
+		path := fmt.Sprintf("%s/%s", r.URL.Path, name)
+		file, _ := h.root.Open(path)
+		tplData.inlineMarkdown = prepareInlineMarkdown(ptype, file)
+		file.Close()
 	}
 
 	err := minifyTemplate("fileindex", tplData, w)
@@ -173,7 +165,7 @@ func (h *fileindexHandler) prepareFileList(req *http.Request) ([]fileEntry, erro
 			IsDir: file.IsDir(),
 			Name: name,
 			Date: file.ModTime().UTC().Format("2006-01-02 15:04:05"),
-			Size: ByteCountIEC(file.Size()),
+			Size: util.ByteCountIEC(file.Size()),
 		})
 	}
 
@@ -354,7 +346,7 @@ func (h *fileindexHandler) recvFile(w http.ResponseWriter, r * http.Request) (bo
 	filepath := r.URL.Path + filename
 	h.logger.Info.Printf("Receiving file '%s'", filepath)
 
-	destFile, err := os.Create(config.Get().Handlers.FileIndex.BasePath + filepath)
+	destFile, err := os.Create(config.Get().Paths.Base + filepath)
 	if err != nil {
 		return false, err
 	}
@@ -367,4 +359,29 @@ func (h *fileindexHandler) recvFile(w http.ResponseWriter, r * http.Request) (bo
 
 	http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 	return true, nil
+}
+
+func (h *fileindexHandler) showMarkdown(list []fileEntry) (bool, string) {
+	for _, file := range list {
+		if file.IsDir || !useAsPreview(file.Name) {
+			continue
+		}
+		return true, file.Name
+	}
+	return false, ""
+}
+
+func (h *fileindexHandler) loadMarkdown(path string) (template.HTML, error) {
+	file, err := h.root.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	buf, err := io.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+
+	return renderMarkdown(buf), nil
 }

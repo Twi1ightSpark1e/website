@@ -20,7 +20,7 @@ func templateFullName(name string) string {
 func Initialize() {
 	logger := log.New("TemplatesParser")
 
-	basePath := util.FullPath(config.Get().TemplatesPath)
+	basePath := util.FullPath(config.Get().Paths.Templates)
 	logger.Info.Printf("Parsing templates at '%s'", basePath)
 
 	var err error
