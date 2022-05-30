@@ -26,12 +26,7 @@ import (
 )
 
 func useAsPreview(name string) bool {
-	for _, entry := range config.Get().Handlers.FileIndex.Preview {
-		if name == entry {
-			return true
-		}
-	}
-	return false
+	return strings.EqualFold(name, "readme.md")
 }
 
 type uploader func(w http.ResponseWriter, r *http.Request) (bool, error)
@@ -45,13 +40,10 @@ type fileEntry struct {
 
 type fileindexPage struct {
 	breadcrumb
+	inlineMarkdown
+
 	AllowUpload bool
 	List []fileEntry
-
-	ShowMarkdown bool
-	MarkdownOnTop bool
-	MarkdownTitle string
-	MarkdownContent template.HTML
 }
 
 type fileindexHandler struct {
@@ -127,18 +119,14 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		tplData.List = list
 
 		show, name := h.showMarkdown(list)
-		tplData.ShowMarkdown = show
-		tplData.MarkdownOnTop = h.endpoint.Preview == config.PreviewPre
-		tplData.MarkdownTitle = name
+		ptype := config.PreviewNone
 		if show {
-			path := fmt.Sprintf("%s/%s", r.URL.Path, name)
-			md, err := h.loadMarkdown(path)
-			if err != nil {
-				tplData.ShowMarkdown = false
-			} else {
-				tplData.MarkdownContent = md
-			}
+			ptype = h.endpoint.Preview
 		}
+		path := fmt.Sprintf("%s/%s", r.URL.Path, name)
+		file, _ := h.root.Open(path)
+		tplData.inlineMarkdown = prepareInlineMarkdown(ptype, file)
+		file.Close()
 	}
 
 	err := minifyTemplate("fileindex", tplData, w)

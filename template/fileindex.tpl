@@ -7,6 +7,7 @@
 
 {{template "body.tpl" .}}
   {{if .List}}
+  {{template "inline-markdown-pre.tpl" .}}
   <div class="d-flex flex-column flex-lg-row justify-content-between">
     <div class="mb-2 mb-lg-0 download-as">
       <span>Download as:</span>
@@ -43,14 +44,7 @@
       {{end}}
     </tbody>
   </table>
-  {{if .ShowMarkdown}}
-    <div class="border rounded-top p-3">
-      <h2>{{.MarkdownTitle}}</h2>
-    </div>
-    <div class="border rounded-bottom p-3 mb-2">
-      {{.MarkdownContent}}
-    </div>
-  {{end}}
+  {{template "inline-markdown-post.tpl" .}}
   {{end}}
 {{template "footer.tpl" .}}
 
