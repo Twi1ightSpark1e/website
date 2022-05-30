@@ -28,7 +28,6 @@ type FileindexHandlerEndpointStruct struct {
 }
 type FileindexHandlerStruct struct {
 	Hide []string `yaml:"hide,omitempty"`
-	Preview []string `yaml:"preview,omitempty"`
 	Endpoints map[string]FileindexHandlerEndpointStruct `yaml:"endpoints"`
 }
 
@@ -82,7 +81,6 @@ type MarkdownStruct struct {
 
 type PathsStruct struct {
 	Base string `yaml:"base"`
-	Chroot bool `yaml:"chroot,omitempty"`
 	Templates string `yaml:"templates"`
 }
 
