@@ -7,10 +7,11 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -138,7 +139,7 @@ func (h *fileindexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *fileindexHandler) prepareFileList(req *http.Request) ([]fileEntry, error) {
 	result := make([]fileEntry, 0)
 
-	if h.isHiddenPath(req.URL.Path) {
+	if h.isHiddenPath(req.URL.Path, getRemoteAddr(req)) {
 		return result, errors.New("Content not found")
 	}
 
@@ -152,17 +153,33 @@ func (h *fileindexHandler) prepareFileList(req *http.Request) ([]fileEntry, erro
 		return result, err
 	}
 
+	conf := config.Get()
 	for _, file := range files {
 		name := file.Name()
-		if h.isHiddenPath(name) {
-			continue
+		path := fmt.Sprintf("%s%s", req.URL.Path, name)
+		fullpath := fmt.Sprintf("%s%s", conf.Paths.Base, path)
+		realpath, err := filepath.EvalSymlinks(fullpath)
+		if err != nil {
+			h.logger.Info.Printf("Cannot read symlink for '%s': %v", path, err)
+			realpath = fullpath
 		}
-		if file.IsDir() {
+
+		realinfo, err := os.Stat(realpath)
+		if err != nil {
+			h.logger.Info.Printf("Cannot read stat for '%s': %v", path, err)
+		}
+
+		if realinfo.IsDir() {
 			name = name + string(os.PathSeparator)
+			path = path + string(os.PathSeparator)
+		}
+
+		if h.isHiddenPath(path, getRemoteAddr(req)) {
+			continue
 		}
 
 		result = append(result, fileEntry {
-			IsDir: file.IsDir(),
+			IsDir: realinfo.IsDir(),
 			Name: name,
 			Date: file.ModTime().UTC().Format("2006-01-02 15:04:05"),
 			Size: util.ByteCountIEC(file.Size()),
@@ -208,14 +225,14 @@ func (h *fileindexHandler) sendFile(writer http.ResponseWriter, req *http.Reques
 	return true, nil
 }
 
-func (h *fileindexHandler) prepareTar(w io.WriteCloser, dir string) error {
+func (h *fileindexHandler) prepareTar(w io.WriteCloser, dir string, clientAddr net.IP) error {
 	defer w.Close()
 
 	tw := tar.NewWriter(w)
 	defer tw.Close()
 
 	fsroot := filter.Skip(h.root, func (path string, fi os.FileInfo) bool {
-		return h.isHiddenPath(path)
+		return h.isHiddenPath(path, clientAddr)
 	})
 
 	return vfsutil.Walk(fsroot, dir, func (path string, info fs.FileInfo, err error) error {
@@ -268,7 +285,7 @@ func (h *fileindexHandler) uploadTar(w http.ResponseWriter, r *http.Request) (bo
 	bufr, bufw := io.Pipe()
 	defer bufr.Close()
 
-	go h.prepareTar(bufw, dir)
+	go h.prepareTar(bufw, dir, getRemoteAddr(r))
 	written, err := io.Copy(w, bufr)
 	return written > 0, err
 }
@@ -286,7 +303,7 @@ func (h *fileindexHandler) uploadGz(w http.ResponseWriter, r *http.Request) (boo
 	compressor := gzip.NewWriter(w)
 	defer compressor.Close()
 
-	go h.prepareTar(bufw, dir)
+	go h.prepareTar(bufw, dir, getRemoteAddr(r))
 	written, err := io.Copy(compressor, bufr)
 	return written > 0, err
 }
@@ -307,20 +324,21 @@ func (h *fileindexHandler) uploadZst(w http.ResponseWriter, r *http.Request) (bo
 	}
 	defer compressor.Close()
 
-	go h.prepareTar(bufw, dir)
+	go h.prepareTar(bufw, dir, getRemoteAddr(r))
 	written, err := io.Copy(compressor, bufr)
 	return written > 0, err
 }
 
-func (h *fileindexHandler) isHiddenPath(p string) bool {
+func (h *fileindexHandler) isHiddenPath(p string, clientAddr net.IP) bool {
 	hidden := config.Get().Handlers.FileIndex.Hide
-	dirname, filename := path.Split(p)
+
 	for _, hiddenEntry := range hidden {
-		hiddenFolder := fmt.Sprintf("/%s/", hiddenEntry)
-		if filename == hiddenEntry || strings.Contains(dirname, hiddenFolder) {
+		cond := regexp.MustCompile(hiddenEntry.Regex)
+		if cond.Match([]byte(p)) && !config.IsAllowedByACL(clientAddr, hiddenEntry.Exclude) {
 			return true
 		}
 	}
+
 	return false
 }
 

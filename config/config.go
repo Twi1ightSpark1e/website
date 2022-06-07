@@ -27,7 +27,10 @@ type FileindexHandlerEndpointStruct struct {
 	Preview PreviewType `yaml:"preview,omitempty"`
 }
 type FileindexHandlerStruct struct {
-	Hide []string `yaml:"hide,omitempty"`
+	Hide []struct {
+		Regex string `yaml:"regex"`
+		Exclude string `yaml:"exclude,omitempty"`
+	} `yaml:"hide,omitempty"`
 	Endpoints map[string]FileindexHandlerEndpointStruct `yaml:"endpoints"`
 }
 
@@ -115,6 +118,7 @@ func Initialize(path string) {
 	}
 
 	updatePasswords(path)
+	validate()
 }
 
 func updatePasswords(path string) {
@@ -162,6 +166,15 @@ func updatePasswords(path string) {
 	}
 
 	file.Write(confRaw)
+}
+
+func validate() {
+	for _, entry := range config.Handlers.FileIndex.Hide {
+		_, err := regexp.Compile(entry.Regex)
+		if err != nil {
+			logger.Err.Fatalf("Cannot compile 'Handlers.FileIndex.Hide' regex '%s': %v'`", entry.Regex, err)
+		}
+	}
 }
 
 func Get() Config {
