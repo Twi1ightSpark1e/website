@@ -5,12 +5,14 @@ import (
 	"net/http"
 
 	"github.com/Twi1ightSpark1e/website/config"
+	"github.com/Twi1ightSpark1e/website/handlers/errors"
+	"github.com/Twi1ightSpark1e/website/handlers/util"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
 )
 
 type cardsPage struct {
-	breadcrumb
+	util.BreadcrumbData
 	Cards []config.CardStruct
 }
 
@@ -25,19 +27,19 @@ func CardsHandler(logger log.Channels, path string, endpoint config.CardsEndpoin
 }
 
 func (h *cardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	remoteAddr := getRemoteAddr(r)
+	remoteAddr := util.GetRemoteAddr(r)
 	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
-	if !assertPath(h.path, w, r, h.logger.Err) {
+	if !errors.AssertPath(h.path, w, r, h.logger.Err) {
 		return
 	}
 
 	tplData := cardsPage {
 		Cards: h.getCards(remoteAddr),
-		breadcrumb: prepareBreadcrum(r),
+		BreadcrumbData: util.PrepareBreadcrumb(r),
 	}
 
-	err := minifyTemplate("cards", tplData, w)
+	err := util.MinifyTemplate("cards", tplData, w)
 	if err != nil {
 		h.logger.Err.Print(err)
 	}

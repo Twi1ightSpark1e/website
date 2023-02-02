@@ -29,3 +29,12 @@ img.file-icon {
 .download-as > *:not(:last-child) {
     margin-right: 0.5rem;
 }
+
+.toolbar > *:not(:last-child) {
+    margin-bottom: 0.5rem;
+}
+@media (min-width:1200px) {
+    .toolbar > *:not(:last-child) {
+        margin-bottom: 0rem;
+    }
+}

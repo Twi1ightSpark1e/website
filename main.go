@@ -10,6 +10,9 @@ import (
 
 	configuration "github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/handlers"
+	"github.com/Twi1ightSpark1e/website/handlers/fileindex"
+	"github.com/Twi1ightSpark1e/website/handlers/markdown"
+	"github.com/Twi1ightSpark1e/website/handlers/util"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/Twi1ightSpark1e/website/template"
 )
@@ -31,14 +34,14 @@ func main() {
 	configuration.Initialize(configPath)
 	config := configuration.Get()
 	template.Initialize()
-	handlers.InitializeMinify()
+	util.InitializeMinify()
 
 	baseDir := http.Dir(config.Paths.Base)
 
 	fileindexLogger := log.New("FileindexHandler")
 	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {
 		path := handlerPath(entry)
-		handler := handlers.FileindexHandler(baseDir, path, endpoint, fileindexLogger)
+		handler := fileindex.CreateHandler(baseDir, path, endpoint, fileindexLogger)
 		http.Handle(path, handler)
 
 		logger.Info.Printf("New 'fileindex' handler for '%s'", path)
@@ -72,7 +75,7 @@ func main() {
 	for entry, endpoint := range config.Handlers.Markdown.Endpoints {
 		path := handlerPath(entry)
 		path = path[:len(path)-1]
-		handler := handlers.MarkdownHandler(baseDir, path, endpoint, markdownLogger)
+		handler := markdown.CreateHandler(baseDir, path, endpoint, markdownLogger)
 		http.Handle(path, handler)
 
 		logger.Info.Printf("New 'markdown' handler for '%s'", path)

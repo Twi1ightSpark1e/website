@@ -4,7 +4,7 @@ Contains backend and HTML templates of my website. Demo available at https://twi
 
 # Initial launch
 
-Go version 1.16.5 minimal tested.
+Go version 1.18.3 minimal tested, 1.18 minimal required.
 
 ```
 $ git clone https://github.com/Twi1ightSpark1e/website.git

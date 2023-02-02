@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/Twi1ightSpark1e/website/config"
+	"github.com/Twi1ightSpark1e/website/handlers/errors"
+	"github.com/Twi1ightSpark1e/website/handlers/util"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/google/shlex"
 )
@@ -21,15 +23,15 @@ func WebhookHandler(logger log.Channels, path string, endpoint config.WebhookEnd
 }
 
 func (h *webhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	remoteAddr := getRemoteAddr(r)
+	remoteAddr := util.GetRemoteAddr(r)
 	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
-		writeNotFoundError(w, r, h.logger.Err)
+		errors.WriteNotFoundError(w, r, h.logger.Err)
 		return
 	}
 
-	if !assertPath(h.path, w, r, h.logger.Err) {
+	if !errors.AssertPath(h.path, w, r, h.logger.Err) {
 		return
 	}
 

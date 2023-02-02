@@ -1,0 +1,149 @@
+package fileindex
+
+import (
+	"errors"
+	"fmt"
+	"io/fs"
+	"net"
+	"os"
+	"regexp"
+	"sort"
+	"strings"
+
+	"github.com/Twi1ightSpark1e/website/config"
+	"github.com/shurcooL/httpfs/filter"
+	"github.com/shurcooL/httpfs/vfsutil"
+)
+
+func byteCountIEC(b int64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+	div, exp := int64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(b)/float64(div), "KMGTPE"[exp])
+}
+
+func (h *handler) isHiddenPath(p string, clientAddr net.IP) bool {
+	hidden := config.Get().Handlers.FileIndex.Hide
+
+	for _, hiddenEntry := range hidden {
+		cond := regexp.MustCompile(hiddenEntry.Regex)
+		if cond.Match([]byte(p)) && !config.IsAllowedByACL(clientAddr, hiddenEntry.Exclude) {
+			return true
+		}
+	}
+
+	return false
+}
+
+type DirContentCallback func (relativepath string, fi fs.FileInfo, err error) error
+
+func (h *handler) getDirContent(basepath string, addr net.IP, recursive bool, callback DirContentCallback) error {
+	if h.isHiddenPath(basepath, addr) {
+		return errors.New("Content not found")
+	}
+
+	newroot := filter.Skip(h.root, func (path string, fi os.FileInfo) bool {
+		if fi.IsDir() {
+			path = path + "/"
+		}
+		return h.isHiddenPath(path, addr)
+	})
+
+	if recursive {
+		onetimeskip := false;
+		err := vfsutil.Walk(newroot, basepath, func (path string, fi fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !onetimeskip { // skip the basepath directory itself
+				onetimeskip = true
+				return err
+			}
+
+			relativepath := path[len(basepath):]
+			if len(relativepath) > 0 {
+				relativepath = relativepath[:len(relativepath) - len(fi.Name())]
+			}
+			return callback(relativepath, fi, err)
+		})
+		return err
+	}
+
+	filelist, err := vfsutil.ReadDir(newroot, basepath)
+	for _, fi := range filelist {
+		err = callback("", fi, nil)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+type fileEntry struct {
+	Name string
+	Size string
+	Date string
+	IsDir bool
+}
+
+func (h *handler) prepareFileList(path string, addr net.IP, params findParams) ([]fileEntry, error) {
+	result := make([]fileEntry, 0)
+	hasQuery := len(params.FindQuery) > 0
+
+	err := h.getDirContent(path, addr, hasQuery, func (relativepath string, fi fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relativepath = strings.TrimLeft(relativepath, "/")
+		name := fi.Name()
+		path := fmt.Sprintf("%s%s", relativepath, name)
+
+		if fi.IsDir() {
+			name = name + "/"
+			path = path + "/"
+		}
+
+		check, err := h.nameMatchesSearchParams(name, params)
+		if err != nil || !check {
+			return err
+		}
+
+		entryName := name
+		if hasQuery {
+			entryName = path
+		}
+
+		result = append(result, fileEntry{
+			IsDir: fi.IsDir(),
+			Name: entryName,
+			Date: fi.ModTime().UTC().Format("2006-01-02 15:04:05"),
+			Size: byteCountIEC(fi.Size()),
+		})
+
+		return err
+	})
+	if err != nil {
+		return result, err
+	}
+
+	if len(result) == 0 {
+		err = errors.New("This folder is empty")
+	} else {
+		sort.Slice(result, func (i, j int) bool {
+			if result[i].IsDir != result[j].IsDir {
+				return result[i].IsDir
+			}
+			return strings.Compare(result[i].Name, result[j].Name) < 0
+		})
+	}
+
+	return result, err
+}
