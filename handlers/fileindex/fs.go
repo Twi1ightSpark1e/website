@@ -43,7 +43,13 @@ func (h *handler) isHiddenPath(p string, clientAddr net.IP) bool {
 
 type DirContentCallback func (relativepath string, fi fs.FileInfo, err error) error
 
-func (h *handler) getDirContent(basepath string, addr net.IP, recursive bool, callback DirContentCallback) error {
+func (h *handler) getDirContent(
+	basepath string,
+	addr net.IP,
+	recursive bool,
+	searchParams searchParams,
+	callback DirContentCallback,
+) error {
 	if h.isHiddenPath(basepath, addr) {
 		return errors.New("Content not found")
 	}
@@ -64,6 +70,12 @@ func (h *handler) getDirContent(basepath string, addr net.IP, recursive bool, ca
 
 			if !onetimeskip { // skip the basepath directory itself
 				onetimeskip = true
+				return err
+			}
+
+			name := fi.Name()
+			nameMatches, _ := h.nameMatchesSearchParams(name, searchParams)
+			if !nameMatches {
 				return err
 			}
 
@@ -93,11 +105,11 @@ type fileEntry struct {
 	IsDir bool
 }
 
-func (h *handler) prepareFileList(path string, addr net.IP, params findParams) ([]fileEntry, error) {
+func (h *handler) prepareFileList(path string, addr net.IP, params searchParams) ([]fileEntry, error) {
 	result := make([]fileEntry, 0)
 	hasQuery := len(params.FindQuery) > 0
 
-	err := h.getDirContent(path, addr, hasQuery, func (relativepath string, fi fs.FileInfo, err error) error {
+	err := h.getDirContent(path, addr, hasQuery, params, func (relativepath string, fi fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -134,7 +146,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params findParams) (
 		return result, err
 	}
 
-	if len(result) == 0 {
+	if len(result) == 0 && !hasQuery {
 		err = errors.New("This folder is empty")
 	} else {
 		sort.Slice(result, func (i, j int) bool {

@@ -5,13 +5,13 @@ import (
 	"strings"
 )
 
-type findParams struct {
+type searchParams struct {
 	FindQuery string
 	FindMatchCase bool
 	FindRegex bool
 }
 
-func (h *handler) nameMatchesSearchParams(name string, params findParams) (bool, error) {
+func (h *handler) nameMatchesSearchParams(name string, params searchParams) (bool, error) {
 	if len(params.FindQuery) == 0 {
 		return true, nil
 	}

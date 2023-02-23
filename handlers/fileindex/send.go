@@ -14,7 +14,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-func (h *handler) sendFile(writer http.ResponseWriter, req *http.Request) (bool, error) {
+func (h *handler) sendFile(writer http.ResponseWriter, req *http.Request, params searchParams) (bool, error) {
 	file, err := h.root.Open(req.URL.Path)
 	if err != nil {
 		return false, err
@@ -26,8 +26,8 @@ func (h *handler) sendFile(writer http.ResponseWriter, req *http.Request) (bool,
 	}
 
 	if stat.Mode().IsDir() {
-		if uploader, ok := h.uploaders[req.URL.Query().Get("type")]; ok {
-			return uploader(writer, req)
+		if uploader, ok := h.uploaders[req.URL.Query().Get("download")]; ok {
+			return uploader(writer, req, params)
 		}
 	}
 
@@ -39,7 +39,7 @@ func (h *handler) sendFile(writer http.ResponseWriter, req *http.Request) (bool,
 	return true, nil
 }
 
-func (h *handler) prepareTar(w io.WriteCloser, dir string, clientAddr net.IP) error {
+func (h *handler) prepareTar(w io.WriteCloser, dir string, clientAddr net.IP, params searchParams) error {
 	defer w.Close()
 
 	tw := tar.NewWriter(w)
@@ -47,7 +47,7 @@ func (h *handler) prepareTar(w io.WriteCloser, dir string, clientAddr net.IP) er
 
 	_, dirname := filepath.Split(filepath.Dir(dir))
 
-	return h.getDirContent(dir, clientAddr, true, func (relativepath string, fi fs.FileInfo, err error) error {
+	return h.getDirContent(dir, clientAddr, true, params, func (relativepath string, fi fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func (h *handler) prepareTar(w io.WriteCloser, dir string, clientAddr net.IP) er
 	})
 }
 
-func (h *handler) uploadTar(w http.ResponseWriter, r *http.Request) (bool, error) {
+func (h *handler) uploadTar(w http.ResponseWriter, r *http.Request, params searchParams) (bool, error) {
 	dir := r.URL.Path[1:]
 	filename := fmt.Sprintf("%s.tar", filepath.Base(r.URL.Path))
 
@@ -93,12 +93,12 @@ func (h *handler) uploadTar(w http.ResponseWriter, r *http.Request) (bool, error
 	bufr, bufw := io.Pipe()
 	defer bufr.Close()
 
-	go h.prepareTar(bufw, dir, util.GetRemoteAddr(r))
+	go h.prepareTar(bufw, dir, util.GetRemoteAddr(r), params)
 	written, err := io.Copy(w, bufr)
 	return written > 0, err
 }
 
-func (h *handler) uploadGz(w http.ResponseWriter, r *http.Request) (bool, error) {
+func (h *handler) uploadGz(w http.ResponseWriter, r *http.Request, params searchParams) (bool, error) {
 	dir := r.URL.Path[1:]
 	filename := fmt.Sprintf("%s.tar.gz", filepath.Base(r.URL.Path))
 
@@ -111,12 +111,12 @@ func (h *handler) uploadGz(w http.ResponseWriter, r *http.Request) (bool, error)
 	compressor := gzip.NewWriter(w)
 	defer compressor.Close()
 
-	go h.prepareTar(bufw, dir, util.GetRemoteAddr(r))
+	go h.prepareTar(bufw, dir, util.GetRemoteAddr(r), params)
 	written, err := io.Copy(compressor, bufr)
 	return written > 0, err
 }
 
-func (h *handler) uploadZst(w http.ResponseWriter, r *http.Request) (bool, error) {
+func (h *handler) uploadZst(w http.ResponseWriter, r *http.Request, params searchParams) (bool, error) {
 	dir := r.URL.Path[1:]
 	filename := fmt.Sprintf("%s.tar.zst", filepath.Base(r.URL.Path))
 
@@ -132,7 +132,7 @@ func (h *handler) uploadZst(w http.ResponseWriter, r *http.Request) (bool, error
 	}
 	defer compressor.Close()
 
-	go h.prepareTar(bufw, dir, util.GetRemoteAddr(r))
+	go h.prepareTar(bufw, dir, util.GetRemoteAddr(r), params)
 	written, err := io.Copy(compressor, bufr)
 	return written > 0, err
 }
