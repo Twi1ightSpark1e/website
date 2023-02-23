@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -116,11 +117,16 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 
 		relativepath = strings.TrimLeft(relativepath, "/")
 		name := fi.Name()
-		path := fmt.Sprintf("%s%s", relativepath, name)
+		fpath := fmt.Sprintf("%s%s", relativepath, name)
+
+		fi, err = h.readSymlink(filepath.Join(path, relativepath), fi)
+		if err != nil {
+			return err
+		}
 
 		if fi.IsDir() {
 			name = name + "/"
-			path = path + "/"
+			fpath = fpath + "/"
 		}
 
 		check, err := h.nameMatchesSearchParams(name, params)
@@ -130,7 +136,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 
 		entryName := name
 		if hasQuery {
-			entryName = path
+			entryName = fpath
 		}
 
 		result = append(result, fileEntry{
@@ -158,4 +164,18 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 	}
 
 	return result, err
+}
+
+func (h *handler) readSymlink(path string, fi fs.FileInfo) (os.FileInfo, error) {
+	if fi.Mode() & fs.ModeSymlink == 0 {
+		return fi, nil
+	}
+
+	fullpath := filepath.Join(config.Get().Paths.Base, path, fi.Name())
+	realpath, err := filepath.EvalSymlinks(fullpath)
+	if err != nil {
+		return fi, err
+	}
+
+	return os.Stat(realpath)
 }
