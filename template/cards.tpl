@@ -1,10 +1,10 @@
 <html lang="en">
 
 <head>
-  {{template "head.tpl" .}}
+  {{template "base/head" .}}
 </head>
 
-{{template "body.tpl" .}}
+{{template "base/body" .}}
   <div class="row gx-0 justify-content-center">
     {{range .Cards}}
     <div class="card bg-light border-light m-3" style="width: 18rem;">
@@ -22,6 +22,6 @@
     <h4 class="text-center">No content for you, sorry \_(ツ)_/</h4>
     {{end}}
   </div>
-{{template "footer.tpl" .}}
+{{template "base/footer" .}}
 
 </html>

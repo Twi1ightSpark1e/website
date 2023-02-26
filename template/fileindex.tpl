@@ -2,12 +2,12 @@
 <html>
 
 <head>
-  {{template "head.tpl" .}}
+  {{template "base/head" .}}
   <link rel="stylesheet" type="text/css" href="/static/autoindex.css"></link>
 </head>
 
-{{template "body.tpl" .}}
-  {{template "inline-markdown-pre.tpl" .}}
+{{template "base/body" .}}
+  {{template "base/inline-markdown-pre" .}}
   <div class="toolbar mb-1 container row row-cols-1 row-cols-xl-3 mx-0 px-0 justify-content-between">
     <form method="get" class="col">
       {{range .PreservedParams}}
@@ -67,7 +67,7 @@
       {{end}}
     </tbody>
   </table>
-  {{template "inline-markdown-post.tpl" .}}
-{{template "footer.tpl" .}}
+  {{template "base/inline-markdown-post" .}}
+{{template "base/footer" .}}
 
 </html>

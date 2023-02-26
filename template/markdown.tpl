@@ -1,11 +1,11 @@
 <html lang="en">
 
 <head>
-  {{template "head.tpl" .}}
+  {{template "base/head" .}}
 </head>
 
-{{template "body.tpl" .}}
+{{template "base/body" .}}
 {{.Content}}
-{{template "footer.tpl" .}}
+{{template "base/footer" .}}
 
 </html>

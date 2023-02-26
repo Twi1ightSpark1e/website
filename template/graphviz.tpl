@@ -1,7 +1,7 @@
 <html lang="en">
 
 <head>
-  {{template "head.tpl" .}}
+  {{template "base/head" .}}
   <style>
     img {
       width: 75% !important;
@@ -10,11 +10,11 @@
   </style>
 </head>
 
-{{template "body.tpl" .}}
+{{template "base/body" .}}
   <div class="row justify-content-center">
     <h3 class="text-center">Last update: {{.Timestamp}}</h3>
     <img></img>
   </div>
-{{template "footer.tpl" .}}
+{{template "base/footer" .}}
 
 </html>

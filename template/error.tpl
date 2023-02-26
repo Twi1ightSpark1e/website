@@ -1,13 +1,13 @@
 <html lang="en">
 
 <head>
-  {{template "head.tpl" .}}
+  {{template "base/head" .}}
 </head>
 
-{{template "body.tpl" .}}
+{{template "base/body" .}}
   <div class="justify-content-center">
     <h4 class="text-center">{{.Error}}</h4>
   </div>
-{{template "footer.tpl" .}}
+{{template "base/footer" .}}
 
 </html>
