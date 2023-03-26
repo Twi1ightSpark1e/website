@@ -3,6 +3,7 @@
 
 <head>
   {{template "base/head" .}}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
   <link rel="stylesheet" type="text/css" href="/static/autoindex.css"></link>
 </head>
 
@@ -57,7 +58,7 @@
         <tr class="filetable-entry">
           <td>
             <a href="{{.Name}}" class="text-light">
-              <img class="me-2 {{if .IsDir}}directory{{else}}file{{end}}-icon"/>
+              <i class="bi bi-{{if .IsDir}}folder{{else}}file-text{{end}}-fill"></i>
               {{.Name}}
             </a>
           </td>
