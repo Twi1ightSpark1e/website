@@ -60,6 +60,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := util.GetRemoteAddr(r)
 	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
+	if util.HandleThemeToggle(w, r, h.logger.Info) {
+		return
+	}
+
 	allowUpload := config.IsAllowedByACL(remoteAddr, h.endpoint.Upload)
 	allowPost := r.Method == http.MethodPost && allowUpload
 	allowView := r.Method != http.MethodPost && config.IsAllowedByACL(remoteAddr, h.endpoint.View)

@@ -33,6 +33,9 @@ func (h *cardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !errors.AssertPath(h.path, w, r, h.logger.Err) {
 		return
 	}
+	if util.HandleThemeToggle(w, r, h.logger.Info) {
+		return
+	}
 
 	tplData := cardsPage {
 		Cards: h.getCards(remoteAddr),

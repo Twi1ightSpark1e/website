@@ -11,6 +11,7 @@ import (
 type BreadcrumbData struct {
 	Breadcrumb []breadcrumbItem
 	LastBreadcrumb string
+	ThemeSwitch Theme
 }
 
 type breadcrumbItem struct {
@@ -44,5 +45,6 @@ func PrepareBreadcrumb(req *http.Request) BreadcrumbData {
 	return BreadcrumbData{
 		Breadcrumb: result[:len(result) - 1],
 		LastBreadcrumb: result[len(result) - 1].Title,
+		ThemeSwitch: GetTheme(req),
 	}
 }
