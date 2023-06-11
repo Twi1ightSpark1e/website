@@ -42,7 +42,7 @@ func main() {
 	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {
 		path := handlerPath(entry)
 		handler := fileindex.CreateHandler(baseDir, path, endpoint, fileindexLogger)
-		http.Handle(path, handler)
+		http.HandleFunc(path, wrapHandler(handler))
 
 		logger.Info.Printf("New 'fileindex' handler for '%s'", path)
 	}
@@ -50,7 +50,8 @@ func main() {
 	graphvizLogger := log.New("GraphvizLogger")
 	for entry, endpoint := range config.Handlers.Graphviz.Endpoints {
 		path := handlerPath(entry)
-		http.Handle(path, handlers.GraphvizHandler(graphvizLogger, path, endpoint))
+		handler := handlers.GraphvizHandler(graphvizLogger, path, endpoint)
+		http.HandleFunc(path, wrapHandler(handler))
 
 		logger.Info.Printf("New 'graphviz' handler for '%s'", path)
 	}
@@ -58,7 +59,8 @@ func main() {
 	webhookLogger := log.New("WebhookLogger")
 	for entry, endpoint := range config.Handlers.Webhook.Endpoints {
 		path := handlerPath(entry)
-		http.Handle(path, handlers.WebhookHandler(webhookLogger, path, endpoint))
+		handler := handlers.WebhookHandler(webhookLogger, path, endpoint)
+		http.HandleFunc(path, wrapHandler(handler))
 
 		logger.Info.Printf("New 'webhook' handler for '%s'", path)
 	}
@@ -66,7 +68,8 @@ func main() {
 	cardsLogger := log.New("CardsLogger")
 	for entry, endpoint := range config.Handlers.Cards.Endpoints {
 		path := handlerPath(entry)
-		http.Handle(path, handlers.CardsHandler(cardsLogger, path, endpoint))
+		handler := handlers.CardsHandler(cardsLogger, path, endpoint)
+		http.HandleFunc(path, wrapHandler(handler))
 
 		logger.Info.Printf("New 'cards' handler for '%s'", path)
 	}
@@ -76,7 +79,7 @@ func main() {
 		path := handlerPath(entry)
 		path = path[:len(path)-1]
 		handler := markdown.CreateHandler(baseDir, path, endpoint, markdownLogger)
-		http.Handle(path, handler)
+		http.HandleFunc(path, wrapHandler(handler))
 
 		logger.Info.Printf("New 'markdown' handler for '%s'", path)
 	}
@@ -106,4 +109,13 @@ func initialize() {
 	getopt.FlagLong(&configPath, "config", 'c', "Path to configuration file.")
 
 	getopt.Parse()
+}
+
+func wrapHandler(handler http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if util.HandleThemeToggle(w, r) {
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}
 }

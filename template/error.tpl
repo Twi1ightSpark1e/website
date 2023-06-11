@@ -1,4 +1,4 @@
-<html lang="en">
+{{template "base/html" .}}
 
 <head>
   {{template "base/head" .}}

@@ -1,3 +1,20 @@
 a {
     text-decoration: none;
 }
+
+.btn-subtle {
+    border-color: var(--bs-border-color) !important;
+}
+.btn-subtle:hover {
+    background-color: var(--bs-secondary-bg);
+}
+.btn-check+.btn-subtle {
+    border-color: var(--bs-border-color);
+}
+.btn-check+.btn-subtle:hover {
+    background-color: var(--bs-secondary-bg);
+}
+.btn-check:checked+.btn-subtle {
+    border-color: var(--bs-border-color);
+    background-color: var(--bs-secondary-bg);
+}
