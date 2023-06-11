@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"net/http"
 )
 
@@ -11,9 +10,12 @@ const (
 	ThemeDark        = "dark"
 )
 
-func HandleThemeToggle(w http.ResponseWriter, r *http.Request, logger *log.Logger) bool {
-	r.ParseForm()
+func HandleThemeToggle(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		return false
+	}
 
+	r.ParseForm()
 	if !r.Form.Has("theme") {
 		return false
 	}
