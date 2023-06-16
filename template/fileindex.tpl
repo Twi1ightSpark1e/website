@@ -23,7 +23,7 @@
     <form method="get" class="col">
       <div class="d-flex flex-row">
         <div class="input-group" role="group">
-          <input class="form-control" type="text" placeholder="Find file" aria-label="Find file" name="query" value="{{.FindQuery}}">
+          <input class="form-control" type="text" placeholder="Find file" aria-label="Find file" name="query" value="{{.FindQuery}}" required>
           <input type="checkbox" class="btn-check" id="btn-matchcase" autocomplete="off" name="matchcase" {{if .FindMatchCase}}checked{{end}}>
           <label class="btn btn-subtle" for="btn-matchcase" title="Match case">Aa</label>
           <input type="checkbox" class="btn-check" id="btn-regex" autocomplete="off" name="regex" {{if .FindRegex}}checked{{end}}>
