@@ -8,7 +8,7 @@ tr.filetable-entry > td:not(:first-child) {
 .toolbar > *:not(:last-child) {
     margin-bottom: 0.5rem;
 }
-@media (min-width:1200px) {
+@media (min-width:var(--bs-breakpoint-xl)) {
     .toolbar > *:not(:last-child) {
         margin-bottom: 0rem;
     }

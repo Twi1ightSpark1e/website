@@ -1,5 +1,4 @@
-<!doctype html>
-<html lang="en">
+{{template "base/html" .}}
 
 <head>
   {{template "base/head" .}}
@@ -8,8 +7,8 @@
 {{template "base/body" .}}
   <div class="row gx-0 justify-content-center">
     {{range .Cards}}
-    <div class="card bg-light border-light m-3" style="width: 18rem;">
-      <div class="card-body text-dark">
+    <div class="card m-3" style="width: 18rem;">
+      <div class="card-body">
         <h5 class="card-title">{{.Title}}</h5>
         <p class="card-text">{{.Description}}</p>
       </div>

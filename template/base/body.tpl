@@ -1,3 +1,3 @@
-<body class="bg-dark text-white">
+<body>
   <div class="container">
     {{template "base/breadcrumb" .}}
