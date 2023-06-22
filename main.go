@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
+	"github.com/felixge/httpsnoop"
 	getopt "github.com/pborman/getopt/v2"
 
 	configuration "github.com/Twi1ightSpark1e/website/config"
@@ -23,8 +25,6 @@ var (
 )
 
 func main() {
-	logger := log.New("Main")
-
 	initialize()
 	if showHelp {
 		getopt.PrintUsage(os.Stdout)
@@ -33,65 +33,61 @@ func main() {
 
 	configuration.Initialize(configPath)
 	config := configuration.Get()
+
+	log.Initialize()
+	log.InitializeSignalHandler()
 	template.Initialize()
 	util.InitializeMinify()
 
 	baseDir := http.Dir(config.Paths.Base)
+	counter := 0
 
-	fileindexLogger := log.New("FileindexHandler")
 	for entry, endpoint := range config.Handlers.FileIndex.Endpoints {
 		path := handlerPath(entry)
-		handler := fileindex.CreateHandler(baseDir, path, endpoint, fileindexLogger)
+		handler := fileindex.CreateHandler(baseDir, path, endpoint)
 		http.HandleFunc(path, wrapHandler(handler))
-
-		logger.Info.Printf("New 'fileindex' handler for '%s'", path)
+		counter += 1
 	}
 
-	graphvizLogger := log.New("GraphvizLogger")
 	for entry, endpoint := range config.Handlers.Graphviz.Endpoints {
 		path := handlerPath(entry)
-		handler := handlers.GraphvizHandler(graphvizLogger, path, endpoint)
+		handler := handlers.GraphvizHandler(path, endpoint)
 		http.HandleFunc(path, wrapHandler(handler))
-
-		logger.Info.Printf("New 'graphviz' handler for '%s'", path)
+		counter += 1
 	}
 
-	webhookLogger := log.New("WebhookLogger")
 	for entry, endpoint := range config.Handlers.Webhook.Endpoints {
 		path := handlerPath(entry)
-		handler := handlers.WebhookHandler(webhookLogger, path, endpoint)
+		handler := handlers.WebhookHandler(path, endpoint)
 		http.HandleFunc(path, wrapHandler(handler))
-
-		logger.Info.Printf("New 'webhook' handler for '%s'", path)
+		counter += 1
 	}
 
-	cardsLogger := log.New("CardsLogger")
 	for entry, endpoint := range config.Handlers.Cards.Endpoints {
 		path := handlerPath(entry)
-		handler := handlers.CardsHandler(cardsLogger, path, endpoint)
+		handler := handlers.CardsHandler(path, endpoint)
 		http.HandleFunc(path, wrapHandler(handler))
-
-		logger.Info.Printf("New 'cards' handler for '%s'", path)
+		counter += 1
 	}
 
-	markdownLogger := log.New("MarkdownLogger")
 	for entry, endpoint := range config.Handlers.Markdown.Endpoints {
 		path := handlerPath(entry)
 		path = path[:len(path)-1]
-		handler := markdown.CreateHandler(baseDir, path, endpoint, markdownLogger)
+		handler := markdown.CreateHandler(baseDir, path, endpoint)
 		http.HandleFunc(path, wrapHandler(handler))
-
-		logger.Info.Printf("New 'markdown' handler for '%s'", path)
+		counter += 1
 	}
+
+	log.Stdout().Printf("Total registered handlers: %v", counter)
 
 	var wg sync.WaitGroup
 	for _, addr := range config.Listen {
 		wg.Add(1)
 
-		logger.Info.Printf("Listening TCP on '%s'", addr)
+		log.Stdout().Printf("Listening TCP on '%s'", addr)
 		go func(addr string) {
 			defer wg.Done()
-			logger.Err.Fatal(http.ListenAndServe(addr, nil))
+			log.Stderr().Fatal(http.ListenAndServe(addr, nil))
 		}(addr)
 	}
 	wg.Wait()
@@ -116,6 +112,23 @@ func wrapHandler(handler http.Handler) http.HandlerFunc {
 		if util.HandleThemeToggle(w, r) {
 			return
 		}
-		handler.ServeHTTP(w, r)
+
+		metrics := httpsnoop.CaptureMetrics(handler, w, r)
+		addr := util.GetRemoteAddr(r).String()
+		domain := r.Host
+		username, _, ok := r.BasicAuth()
+		if !ok {
+			username = "-"
+		}
+		timestamp := time.Now().UTC().Format("2006-01-02 15:04:05 -0700 MST")
+		request := fmt.Sprintf("%s %s", r.Method, r.URL.Path)
+		referer := r.Header.Get("Referer")
+		userAgent := r.Header.Get("User-Agent")
+		logstring := fmt.Sprintf("%s %s %s [%s] \"%s\" %v %v %vms \"%s\" \"%s\"", addr, domain, username, timestamp, request, metrics.Code, metrics.Written, metrics.Duration.Milliseconds(), referer, userAgent)
+		if metrics.Code < 400 {
+			log.Access().Print(logstring)
+		} else {
+			log.Error().Print(logstring)
+		}
 	}
 }

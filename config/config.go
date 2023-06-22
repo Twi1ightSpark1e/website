@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/subtle"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -10,8 +11,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
-
-	"github.com/Twi1ightSpark1e/website/log"
 )
 
 type PreviewType string
@@ -87,10 +86,16 @@ type PathsStruct struct {
 	Templates string `yaml:"templates"`
 }
 
+type LogStruct struct {
+	Access string `yaml:"access,omitempty"`
+	Error string `yaml:"error,omitempty"`
+}
+
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
 	Listen []string `yaml:"listen"`
+	Log LogStruct `yaml:"log,omitempty"`
 	Paths PathsStruct `yaml:"paths"`
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`
@@ -102,19 +107,18 @@ type Config struct {
 }
 
 var config Config
-var logger = log.New("ConfigParser")
 
 func Initialize(path string) {
-	logger.Info.Printf("Using configuration file %s", path)
+	log.Printf("Using configuration file %s", path)
 
 	confRaw, err := os.ReadFile(path)
 	if err != nil {
-		logger.Err.Fatalf("Cannot read configuration file: %v", err)
+		log.Fatalf("Cannot read configuration file: %v", err)
 	}
 
 	err = yaml.Unmarshal(confRaw, &config)
 	if err != nil {
-		logger.Err.Fatalf("Invalid configuration file: %v", err)
+		log.Fatalf("Invalid configuration file: %v", err)
 	}
 
 	updatePasswords(path)
@@ -133,14 +137,14 @@ func updatePasswords(path string) {
 
 		newPass, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 		if err != nil {
-			logger.Err.Fatalf("Cannot hash password of user '%s': %v", user, err)
+			log.Fatalf("Cannot hash password of user '%s': %v", user, err)
 		}
 		config.Auth[user] = string(newPass)
 
 		oldUsers = append(oldUsers, fmt.Sprintf("%s:\\s+%s", user, pass))
 		newUsers = append(newUsers, fmt.Sprintf("%s: %s", user, newPass))
 
-		logger.Info.Printf("Updated password of user '%s'", user)
+		log.Printf("Updated password of user '%s'", user)
 	}
 
 	if len(oldUsers) == 0 {
@@ -149,20 +153,20 @@ func updatePasswords(path string) {
 
 	confRaw, err := os.ReadFile(path)
 	if err != nil {
-		logger.Err.Fatalf("Cannot read configuration file: %v", err)
+		log.Fatalf("Cannot read configuration file: %v", err)
 	}
 
 	for idx := range(oldUsers) {
 		old, err := regexp.Compile(oldUsers[idx])
 		if err != nil {
-			logger.Err.Fatalf("Cannot compile replacement regular expression: %v", err)
+			log.Fatalf("Cannot compile replacement regular expression: %v", err)
 		}
  		confRaw = old.ReplaceAllLiteral(confRaw, []byte(newUsers[idx]))
 	}
 
 	file, err := os.OpenFile(path, os.O_WRONLY | os.O_TRUNC, 0644)
 	if err != nil {
-		logger.Err.Fatalf("Cannot open configuration file to write: %v", err)
+		log.Fatalf("Cannot open configuration file to write: %v", err)
 	}
 
 	file.Write(confRaw)
@@ -172,7 +176,7 @@ func validate() {
 	for _, entry := range config.Handlers.FileIndex.Hide {
 		_, err := regexp.Compile(entry.Regex)
 		if err != nil {
-			logger.Err.Fatalf("Cannot compile 'Handlers.FileIndex.Hide' regex '%s': %v'`", entry.Regex, err)
+			log.Fatalf("Configuration error: cannot compile 'Handlers.FileIndex.Hide' regex '%s': %v'`", entry.Regex, err)
 		}
 	}
 }

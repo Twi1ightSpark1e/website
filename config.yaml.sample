@@ -25,6 +25,13 @@ auth:
 listen:
   - :8081
 
+# Log files, optional. Accesses and errors will be written to stdout and stderr if omitted.
+log:
+  # File for successful (code < 400) requests logging.
+  access: /home/twilight/web/access.log
+  # Fire for wrong (code >= 400) requests logging.
+  error: /home/twilight/web/error.log
+
 paths:
   # Base working directory, required
   base: "/mnt"

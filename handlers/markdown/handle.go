@@ -20,41 +20,37 @@ type handler struct {
 	root http.FileSystem
 	path string
 	endpoint config.MarkdownEndpointStruct
-	logger log.Channels
 	cache *template.HTML
 }
 func CreateHandler(
 	root http.FileSystem,
 	path string,
 	endpoint config.MarkdownEndpointStruct,
-	logger log.Channels,
 ) http.Handler {
-	tpl.AssertExists("markdown", logger)
+	tpl.AssertExists("markdown")
 
-	return &handler{root, path, endpoint, logger, nil}
+	return &handler{root, path, endpoint, nil}
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := util.GetRemoteAddr(r)
-	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
-		errors.WriteNotFoundError(w, r, h.logger.Err)
+		errors.WriteNotFoundError(w, r)
 		return
 	}
 
-	if !errors.AssertPath(h.path, w, r, h.logger.Err) {
+	if !errors.AssertPath(h.path, w, r) {
 		return
 	}
 
 	if h.cache == nil {
 		html, err := h.render()
 		if err != nil {
-			errors.WriteError(w, r, err, h.logger.Err)
+			errors.WriteError(w, r, err)
 			return
 		}
 		h.cache = &html
-		h.logger.Info.Printf("Cache rebuild triggered by '%s' request", r.URL.Path)
 	}
 
 	tpl := page{
@@ -63,6 +59,6 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	err := util.MinifyTemplate("markdown", tpl, w)
 	if err != nil {
-		h.logger.Err.Print(err)
+		log.Stderr().Print(err)
 	}
 }

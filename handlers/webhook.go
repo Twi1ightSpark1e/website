@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -14,24 +15,22 @@ import (
 )
 
 type webhookHandler struct {
-	logger log.Channels
 	path string
 	endpoint config.WebhookEndpointStruct
 }
-func WebhookHandler(logger log.Channels, path string, endpoint config.WebhookEndpointStruct) http.Handler {
-	return &webhookHandler{logger, path, endpoint}
+func WebhookHandler(path string, endpoint config.WebhookEndpointStruct) http.Handler {
+	return &webhookHandler{path, endpoint}
 }
 
 func (h *webhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := util.GetRemoteAddr(r)
-	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
 	if !config.IsAllowedByACL(remoteAddr, h.endpoint.View) {
-		errors.WriteNotFoundError(w, r, h.logger.Err)
+		errors.WriteNotFoundError(w, r)
 		return
 	}
 
-	if !errors.AssertPath(h.path, w, r, h.logger.Err) {
+	if !errors.AssertPath(h.path, w, r) {
 		return
 	}
 
@@ -55,38 +54,38 @@ func (h *webhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	args := strings.Join(cmdline[1:], " ")
 	if cmd == nil {
-		h.logger.Err.Printf("Cannot create process '%s' with arguments '%s'", cmdline[0], args)
+		log.Stderr().Printf("Cannot create process '%s' with arguments '%s'", cmdline[0], args)
 		return
 	}
 
-	cmd.Stdout = h.logger.Info.Writer()
-	cmd.Stderr = h.logger.Err.Writer()
+	cmd.Stdout = ioutil.Discard
+	cmd.Stderr = ioutil.Discard
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		h.logger.Err.Printf("Cannot get stdin of spawned process: %v", err)
+		log.Stderr().Printf("Cannot get stdin of spawned process: %v", err)
 		return
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		h.logger.Err.Printf("Cannot spawn process: %v", err)
+		log.Stderr().Printf("Cannot spawn process: %v", err)
 		return
 	}
-	h.logger.Info.Printf("Spawned process '%s' with arguments '%s'", cmdline[0], args)
+	// TODO: debug! h.logger.Access.Printf("Spawned process '%s' with arguments '%s'", cmdline[0], args)
 
 	_, err = io.Copy(stdin, r.Body)
 	if err != nil {
-		h.logger.Err.Printf("Cannot send request body to process stdin: %v", err)
+		log.Stderr().Printf("Cannot send request body to process stdin: %v", err)
 		return
 	}
 	stdin.Close()
 
 	err = cmd.Wait()
 	if err != nil {
-		h.logger.Err.Printf("Cannot wait for webhook exit: %v", err)
+		log.Stderr().Printf("Cannot wait for webhook exit: %v", err)
 	}
 
-	exitcode := cmd.ProcessState.ExitCode()
-	h.logger.Info.Printf("Webhook exited with code %d", exitcode)
+	/*exitcode :=*/ cmd.ProcessState.ExitCode()
+	// TODO: debug! h.logger.Access.Printf("Webhook exited with code %d", exitcode)
 }

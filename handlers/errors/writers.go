@@ -1,10 +1,10 @@
 package errors
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/Twi1ightSpark1e/website/handlers/util"
+	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/pkg/errors"
 )
 
@@ -13,17 +13,17 @@ type page struct {
 	Error string
 }
 
-func WriteUnauthorizedError(w http.ResponseWriter, r *http.Request, errlog *log.Logger) {
+func WriteUnauthorizedError(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized)
-	WriteError(w, r, errors.New("Unauthorized"), errlog)
+	WriteError(w, r, errors.New("Unauthorized"))
 }
 
-func WriteNotFoundError(w http.ResponseWriter, r *http.Request, errlog *log.Logger) {
+func WriteNotFoundError(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
-	WriteError(w, r, errors.New("Content not found"), errlog)
+	WriteError(w, r, errors.New("Content not found"))
 }
 
-func WriteError(w http.ResponseWriter, r *http.Request, message error, errlog *log.Logger) {
+func WriteError(w http.ResponseWriter, r *http.Request, message error) {
 	tpl := page{
 		BreadcrumbData: util.PrepareBreadcrumb(r),
 		Error: message.Error(),
@@ -31,6 +31,6 @@ func WriteError(w http.ResponseWriter, r *http.Request, message error, errlog *l
 
 	err := util.MinifyTemplate("error", tpl, w)
 	if err != nil {
-		errlog.Print(err)
+		log.Stderr().Print(err)
 	}
 }

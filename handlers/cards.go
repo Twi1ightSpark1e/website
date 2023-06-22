@@ -17,20 +17,18 @@ type cardsPage struct {
 }
 
 type cardsHandler struct {
-	logger log.Channels
 	path string
 	endpoint config.CardsEndpointStruct
 }
-func CardsHandler(logger log.Channels, path string, endpoint config.CardsEndpointStruct) http.Handler {
-	template.AssertExists("cards", logger)
-	return &cardsHandler{logger, path, endpoint}
+func CardsHandler(path string, endpoint config.CardsEndpointStruct) http.Handler {
+	template.AssertExists("cards")
+	return &cardsHandler{path, endpoint}
 }
 
 func (h *cardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := util.GetRemoteAddr(r)
-	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
-	if !errors.AssertPath(h.path, w, r, h.logger.Err) {
+	if !errors.AssertPath(h.path, w, r) {
 		return
 	}
 
@@ -41,7 +39,7 @@ func (h *cardsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err := util.MinifyTemplate("cards", tplData, w)
 	if err != nil {
-		h.logger.Err.Print(err)
+		log.Stderr().Print(err)
 	}
 }
 

@@ -30,7 +30,7 @@ func (h *handler) recvFile(w http.ResponseWriter, r * http.Request) (bool, error
 		return false, err
 	}
 	filepath := r.URL.Path + filename
-	h.logger.Info.Printf("Receiving file '%s'", filepath)
+	// TODO: debug! h.logger.Access.Printf("Receiving file '%s'", filepath)
 
 	destFile, err := os.Create(config.Get().Paths.Base + filepath)
 	if err != nil {

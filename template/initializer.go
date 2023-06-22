@@ -19,19 +19,17 @@ var suffix = ".tpl"
 var templates *template.Template
 
 func Initialize() {
-	logger := log.New("TemplatesParser")
-
 	conf := config.Get()
 	basePath := filepath.Join(conf.Paths.Base, conf.Paths.Templates)
-	logger.Info.Printf("Parsing templates at '%s'", basePath)
 	templates = template.New("")
 
+	counter := 0
 	root := filter.Keep(http.Dir(basePath), func (path string, fi fs.FileInfo) bool {
 		return fi.IsDir() || filepath.Ext(path) == suffix
 	})
 	err := vfsutil.WalkFiles(root, "", func (path string, fi fs.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
-			logger.Err.Print(err)
+			log.Stderr().Print(err)
 			return nil
 		}
 
@@ -41,32 +39,34 @@ func Initialize() {
 
 		content, err := ioutil.ReadAll(r)
 		if err != nil {
-			logger.Err.Print(err)
+			log.Stderr().Print(err)
 			return nil
 		}
 
 		path = path[:len(path) - len(suffix)]
 		_, err = templates.New(path).Parse(string(content))
 		if err != nil {
-			logger.Err.Print(err)
+			log.Stderr().Print(err)
 		} else {
-			logger.Info.Printf("New template registered: '%s'", path)
+			counter += 1
 		}
 
 		return nil
 	})
 
 	if err != nil {
-		logger.Err.Fatal(err)
+		log.Stderr().Fatal(err)
 	}
+
+	log.Stdout().Printf("Total templates at '%s': %v", basePath, counter)
 }
 
 func Execute(name string, data interface{}, w io.Writer) error {
 	return templates.ExecuteTemplate(w, name, data)
 }
 
-func AssertExists(name string, logger log.Channels) {
+func AssertExists(name string) {
 	if !lo.ContainsBy(templates.Templates(), func (tpl *template.Template) bool { return tpl.Name() == name }) {
-		logger.Err.Fatalf("'%s' template is missing!", name)
+		log.Stderr().Fatalf("'%s' template is missing!", name)
 	}
 }

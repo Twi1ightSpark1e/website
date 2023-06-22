@@ -18,7 +18,6 @@ type handler struct {
 	root http.FileSystem
 	path string
 	endpoint config.FileindexHandlerEndpointStruct
-	logger log.Channels
 	uploaders map[string]uploader
 }
 
@@ -26,11 +25,10 @@ func CreateHandler(
 	root http.FileSystem,
 	path string,
 	endpoint config.FileindexHandlerEndpointStruct,
-	logger log.Channels,
 ) http.Handler {
-	tpl.AssertExists("fileindex", logger)
+	tpl.AssertExists("fileindex")
 
-	h := &handler{root, path, endpoint, logger, map[string]uploader{}}
+	h := &handler{root, path, endpoint, map[string]uploader{}}
 	h.uploaders = map[string]uploader {
 		"tar": h.uploadTar,
 		"gz": h.uploadGz,
@@ -58,17 +56,16 @@ type page struct {
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	remoteAddr := util.GetRemoteAddr(r)
-	h.logger.Info.Printf("Client %s requested '%s'", remoteAddr, r.URL.Path)
 
 	allowUpload := config.IsAllowedByACL(remoteAddr, h.endpoint.Upload)
 	allowPost := r.Method == http.MethodPost && allowUpload
 	allowView := r.Method != http.MethodPost && config.IsAllowedByACL(remoteAddr, h.endpoint.View)
 	if !allowPost && !allowView {
-		errors.WriteNotFoundError(w, r, h.logger.Err)
+		errors.WriteNotFoundError(w, r)
 		return
 	}
 
-	if !errors.AssertPathBeginning(h.path, w, r, h.logger.Err) {
+	if !errors.AssertPathBeginning(h.path, w, r) {
 		return
 	}
 
@@ -89,26 +86,26 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !config.Authenticate(r, h.endpoint.Auth) {
 		authHeader := fmt.Sprintf(`Basic realm="Authentication required to use %s"`, pageData.LastBreadcrumb)
 		w.Header().Set("WWW-Authenticate", authHeader)
-		errors.WriteUnauthorizedError(w, r, h.logger.Err)
+		errors.WriteUnauthorizedError(w, r)
 		return
 	}
 
 	if recv, err := h.recvFile(w, r); recv {
 		return
 	} else if err != nil {
-		errors.WriteError(w, r, err, h.logger.Err)
+		errors.WriteError(w, r, err)
 		return
 	}
 
 	if sent, err := h.sendFile(w, r, pageData.searchParams); sent {
 		return
 	} else if err != nil {
-		errors.WriteNotFoundError(w, r, h.logger.Err)
+		errors.WriteNotFoundError(w, r)
 		return
 	}
 
 	if list, err := h.prepareFileList(r.URL.Path, remoteAddr, pageData.searchParams); err != nil {
-		errors.WriteError(w, r, err, h.logger.Err)
+		errors.WriteError(w, r, err)
 		return
 	} else {
 		pageData.List = list
@@ -126,7 +123,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err := util.MinifyTemplate("fileindex", pageData, w)
 	if err != nil {
-		h.logger.Err.Print(err)
+		log.Stderr().Print(err)
 	}
 }
 
