@@ -3,6 +3,9 @@
 # Contains named addresses/subnets, used to restrict access to various site resources.
 # An empty list of addresses/subnets restricts access for everyone.
 acl:
+  rproxy:
+    - 192.168.0.128
+    - fe80::dead:beef:1234:5678
   local:
     - 192.168.0.0/16
   any:
@@ -24,6 +27,20 @@ auth:
 # IP address may be omitted to listen any address (both v4 and v6, if supported).
 listen:
   - :8081
+
+# Reverse proxy settings. Optional but highly recommended for security reasons.
+#
+# If no reverse proxy used, recommended settings are: policy: ignore, whitelist: - none.
+# Otherwise recommended to use: policy: error, whitelist: - rproxy.
+reverseproxy:
+  # How to treat `X-Real-Ip` and `X-Forwarded-For` headers from not whitelisted clients. Required.
+  # Valid values are:
+  #   - `error` - throw error code 400 when at least one of above headers provided;
+  #   - `ignore` - do not use above headers to get real client address.
+  policy: error
+  # List of clients that are allowed to set up `X-Real-Ip` and `X-Forwarded-For` headers. Required.
+  whitelist:
+    - rproxy
 
 # Log files, optional. Accesses and errors will be written to stdout and stderr if omitted.
 log:

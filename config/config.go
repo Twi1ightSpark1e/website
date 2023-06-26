@@ -91,11 +91,22 @@ type LogStruct struct {
 	Error string `yaml:"error,omitempty"`
 }
 
+type ReverseProxyPolicy string
+const (
+	PolicyError ReverseProxyPolicy = "error"
+	PolicyIgnore                   = "ignore"
+)
+type ReverseProxyStruct struct {
+	Policy ReverseProxyPolicy `yaml:"policy"`
+	Whitelist []string `yaml:"whitelist"`
+}
+
 type Config struct {
 	Auth map[string]string `yaml:"auth,omitempty"`
 	ACL map[string][]string `yaml:"acl,omitempty"`
 	Listen []string `yaml:"listen"`
 	Log LogStruct `yaml:"log,omitempty"`
+	ReverseProxy ReverseProxyStruct `yaml:"reverseproxy,omitempty"`
 	Paths PathsStruct `yaml:"paths"`
 	Handlers struct {
 		FileIndex FileindexHandlerStruct `yaml:"fileindex,omitempty"`

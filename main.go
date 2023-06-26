@@ -10,8 +10,9 @@ import (
 	"github.com/felixge/httpsnoop"
 	getopt "github.com/pborman/getopt/v2"
 
-	configuration "github.com/Twi1ightSpark1e/website/config"
+	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/handlers"
+	"github.com/Twi1ightSpark1e/website/handlers/errors"
 	"github.com/Twi1ightSpark1e/website/handlers/fileindex"
 	"github.com/Twi1ightSpark1e/website/handlers/markdown"
 	"github.com/Twi1ightSpark1e/website/handlers/util"
@@ -31,8 +32,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	configuration.Initialize(configPath)
-	config := configuration.Get()
+	config.Initialize(configPath)
+	config := config.Get()
 
 	log.Initialize()
 	log.InitializeSignalHandler()
@@ -109,6 +110,11 @@ func initialize() {
 
 func wrapHandler(handler http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !util.IsWhitelistedProxy(r) && config.Get().ReverseProxy.Policy == config.PolicyError {
+			errors.WriteBadRequestError(w, r)
+			return
+		}
+
 		if util.HandleThemeToggle(w, r) {
 			return
 		}

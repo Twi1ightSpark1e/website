@@ -23,6 +23,11 @@ func WriteNotFoundError(w http.ResponseWriter, r *http.Request) {
 	WriteError(w, r, errors.New("Content not found"))
 }
 
+func WriteBadRequestError(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusBadRequest)
+	WriteError(w, r, errors.New("Bad request"))
+}
+
 func WriteError(w http.ResponseWriter, r *http.Request, message error) {
 	tpl := page{
 		BreadcrumbData: util.PrepareBreadcrumb(r),
