@@ -152,9 +152,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 		return result, err
 	}
 
-	if len(result) == 0 && !hasQuery {
-		err = errors.New("This folder is empty")
-	} else {
+	if len(result) != 0 {
 		sort.Slice(result, func(i, j int) bool {
 			if result[i].IsDir != result[j].IsDir {
 				return result[i].IsDir
