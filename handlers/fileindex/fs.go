@@ -42,7 +42,7 @@ func (h *handler) isHiddenPath(p string, clientAddr net.IP) bool {
 	return false
 }
 
-type DirContentCallback func (relativepath string, fi fs.FileInfo, err error) error
+type DirContentCallback func(relativepath string, fi fs.FileInfo, err error) error
 
 func (h *handler) getDirContent(
 	basepath string,
@@ -55,7 +55,7 @@ func (h *handler) getDirContent(
 		return errors.New("Content not found")
 	}
 
-	newroot := filter.Skip(h.root, func (path string, fi os.FileInfo) bool {
+	newroot := filter.Skip(h.root, func(path string, fi os.FileInfo) bool {
 		if fi.IsDir() {
 			path = path + "/"
 		}
@@ -63,8 +63,8 @@ func (h *handler) getDirContent(
 	})
 
 	if recursive {
-		onetimeskip := false;
-		err := vfsutil.Walk(newroot, basepath, func (path string, fi fs.FileInfo, err error) error {
+		onetimeskip := false
+		err := vfsutil.Walk(newroot, basepath, func(path string, fi fs.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -82,7 +82,7 @@ func (h *handler) getDirContent(
 
 			relativepath := path[len(basepath):]
 			if len(relativepath) > 0 {
-				relativepath = relativepath[:len(relativepath) - len(fi.Name())]
+				relativepath = relativepath[:len(relativepath)-len(fi.Name())]
 			}
 			return callback(relativepath, fi, err)
 		})
@@ -100,9 +100,9 @@ func (h *handler) getDirContent(
 }
 
 type fileEntry struct {
-	Name string
-	Size string
-	Date string
+	Name  string
+	Size  string
+	Date  string
 	IsDir bool
 }
 
@@ -110,7 +110,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 	result := make([]fileEntry, 0)
 	hasQuery := len(params.FindQuery) > 0
 
-	err := h.getDirContent(path, addr, hasQuery, params, func (relativepath string, fi fs.FileInfo, err error) error {
+	err := h.getDirContent(path, addr, hasQuery, params, func(relativepath string, fi fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -141,9 +141,9 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 
 		result = append(result, fileEntry{
 			IsDir: fi.IsDir(),
-			Name: entryName,
-			Date: fi.ModTime().UTC().Format("2006-01-02 15:04:05"),
-			Size: byteCountIEC(fi.Size()),
+			Name:  entryName,
+			Date:  fi.ModTime().UTC().Format("2006-01-02 15:04:05"),
+			Size:  byteCountIEC(fi.Size()),
 		})
 
 		return err
@@ -155,11 +155,13 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 	if len(result) == 0 && !hasQuery {
 		err = errors.New("This folder is empty")
 	} else {
-		sort.Slice(result, func (i, j int) bool {
+		sort.Slice(result, func(i, j int) bool {
 			if result[i].IsDir != result[j].IsDir {
 				return result[i].IsDir
 			}
-			return strings.Compare(result[i].Name, result[j].Name) < 0
+			name1 := strings.ToLower(result[i].Name)
+			name2 := strings.ToLower(result[j].Name)
+			return strings.Compare(name1, name2) < 0
 		})
 	}
 
@@ -167,7 +169,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 }
 
 func (h *handler) readSymlink(path string, fi fs.FileInfo) (os.FileInfo, error) {
-	if fi.Mode() & fs.ModeSymlink == 0 {
+	if fi.Mode()&fs.ModeSymlink == 0 {
 		return fi, nil
 	}
 
