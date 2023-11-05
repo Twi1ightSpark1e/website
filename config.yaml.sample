@@ -93,8 +93,6 @@ handlers:
           - testuser2
         upload: local
         preview: post
-      static:
-        view: any
   # Graphviz handler.
   #
   # Receives 'dot'-compatible data on PUT requests, returns graph drawn as SVG.

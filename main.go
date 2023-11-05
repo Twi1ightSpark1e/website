@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -24,6 +25,9 @@ var (
 	configPath = "config.yaml"
 	showHelp = false
 )
+
+//go:embed static
+var staticContent embed.FS
 
 func main() {
 	initialize()
@@ -80,6 +84,11 @@ func main() {
 	}
 
 	log.Stdout().Printf("Total registered handlers: %v", counter)
+
+	{
+		http.Handle("/static/", http.FileServer(http.FS(staticContent)))
+		log.Stdout().Print("Special 'static' handler registered")
+	}
 
 	var wg sync.WaitGroup
 	for _, addr := range config.Listen {
