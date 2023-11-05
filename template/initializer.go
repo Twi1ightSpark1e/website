@@ -20,7 +20,10 @@ var templates *template.Template
 
 func Initialize() {
 	conf := config.Get()
-	basePath := filepath.Join(conf.Paths.Base, conf.Paths.Templates)
+	basePath := conf.Paths.Templates
+	if !filepath.IsAbs(basePath) {
+		basePath = filepath.Join(conf.Paths.Base, basePath)
+	}
 	templates = template.New("")
 
 	counter := 0
