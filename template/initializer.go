@@ -1,14 +1,13 @@
 package template
 
 import (
+	"embed"
 	"html/template"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 
-	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/Twi1ightSpark1e/website/log"
 	"github.com/samber/lo"
 	"github.com/shurcooL/httpfs/filter"
@@ -18,19 +17,21 @@ import (
 var suffix = ".tpl"
 var templates *template.Template
 
+//go:embed *.tpl base/*.tpl
+var templatesContent embed.FS
+
 func Initialize() {
-	conf := config.Get()
-	basePath := conf.Paths.Templates
-	if !filepath.IsAbs(basePath) {
-		basePath = filepath.Join(conf.Paths.Base, basePath)
-	}
 	templates = template.New("")
 
 	counter := 0
-	root := filter.Keep(http.Dir(basePath), func (path string, fi fs.FileInfo) bool {
-		return fi.IsDir() || filepath.Ext(path) == suffix
+	root := filter.Keep(http.FS(templatesContent), func (path string, fi fs.FileInfo) bool {
+		ok := fi.IsDir() || filepath.Ext(path) == suffix
+		if !ok {
+			log.Stderr().Printf("Invalid file embedded into binary: '%s'", fi.Name())
+		}
+		return ok
 	})
-	err := vfsutil.WalkFiles(root, "", func (path string, fi fs.FileInfo, r io.ReadSeeker, err error) error {
+	err := vfsutil.WalkFiles(root, ".", func (path string, fi fs.FileInfo, r io.ReadSeeker, err error) error {
 		if err != nil {
 			log.Stderr().Print(err)
 			return nil
@@ -40,7 +41,7 @@ func Initialize() {
 			return nil
 		}
 
-		content, err := ioutil.ReadAll(r)
+		content, err := io.ReadAll(r)
 		if err != nil {
 			log.Stderr().Print(err)
 			return nil
@@ -61,7 +62,7 @@ func Initialize() {
 		log.Stderr().Fatal(err)
 	}
 
-	log.Stdout().Printf("Total templates at '%s': %v", basePath, counter)
+	log.Stdout().Printf("Total templates: %v", counter)
 }
 
 func Execute(name string, data interface{}, w io.Writer) error {

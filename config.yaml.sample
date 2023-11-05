@@ -52,8 +52,6 @@ log:
 paths:
   # Base working directory, required
   base: "/mnt"
-  # Directory with templates path (absolute or relative), required.
-  templates: "template/"
 
 # Handlers section, optional.
 #

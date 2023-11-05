@@ -83,7 +83,6 @@ type MarkdownStruct struct {
 
 type PathsStruct struct {
 	Base string `yaml:"base"`
-	Templates string `yaml:"templates"`
 }
 
 type LogStruct struct {
