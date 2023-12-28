@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Twi1ightSpark1e/website/config"
 	"github.com/shurcooL/httpfs/filter"
@@ -104,13 +105,15 @@ type fileEntry struct {
 	Size  string
 	Date  string
 	IsDir bool
+	RawSize int64
+	RawDate time.Time
 }
 
-func (h *handler) prepareFileList(path string, addr net.IP, params searchParams) ([]fileEntry, error) {
+func (h *handler) prepareFileList(path string, addr net.IP, search searchParams, sorting sortParams) ([]fileEntry, error) {
 	result := make([]fileEntry, 0)
-	hasQuery := len(params.FindQuery) > 0
+	hasQuery := len(search.FindQuery) > 0
 
-	err := h.getDirContent(path, addr, hasQuery, params, func(relativepath string, fi fs.FileInfo, err error) error {
+	err := h.getDirContent(path, addr, hasQuery, search, func(relativepath string, fi fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -129,7 +132,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 			fpath = fpath + "/"
 		}
 
-		check, err := h.nameMatchesSearchParams(name, params)
+		check, err := h.nameMatchesSearchParams(name, search)
 		if err != nil || !check {
 			return err
 		}
@@ -142,6 +145,8 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 		result = append(result, fileEntry{
 			IsDir: fi.IsDir(),
 			Name:  entryName,
+			RawSize: fi.Size(),
+			RawDate: fi.ModTime().UTC(),
 			Date:  fi.ModTime().UTC().Format("2006-01-02 15:04:05"),
 			Size:  byteCountIEC(fi.Size()),
 		})
@@ -157,9 +162,7 @@ func (h *handler) prepareFileList(path string, addr net.IP, params searchParams)
 			if result[i].IsDir != result[j].IsDir {
 				return result[i].IsDir
 			}
-			name1 := strings.ToLower(result[i].Name)
-			name2 := strings.ToLower(result[j].Name)
-			return strings.Compare(name1, name2) < 0
+			return sortByParams(result[i], result[j], sorting)
 		})
 	}
 
@@ -178,4 +181,27 @@ func (h *handler) readSymlink(path string, fi fs.FileInfo) (os.FileInfo, error) 
 	}
 
 	return os.Stat(realpath)
+}
+
+func sortByParams(entry1, entry2 fileEntry, params sortParams) bool {
+	var diff int64 = -1
+
+	if params.Field == SortByName {
+		name1 := strings.ToLower(entry1.Name)
+		name2 := strings.ToLower(entry2.Name)
+		diff = int64(strings.Compare(name1, name2))
+	}
+
+	if params.Field == SortBySize {
+		diff = entry1.RawSize - entry2.RawSize
+	}
+
+	if params.Field == SortByDate {
+		diff = int64(entry1.RawDate.Compare(entry2.RawDate))
+	}
+
+	if params.IsDesc {
+		return diff > 0
+	}
+	return diff < 0
 }

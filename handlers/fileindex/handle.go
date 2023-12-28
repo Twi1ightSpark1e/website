@@ -47,6 +47,7 @@ type page struct {
 	util.BreadcrumbData
 	markdown.InlineMarkdown
 	searchParams
+	sortParams
 
 	PreservedParams []preservedParam
 	URL string
@@ -69,15 +70,34 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	query := r.URL.Query()
+
+	sort := query.Get("sort")
+	sortDesc := query.Has("sort") && sort[len(sort)-4:] == "desc"
+	sortBySize := query.Has("sort") && sort[0:4] == "size"
+	sortByDate := query.Has("sort") && sort[0:4] == "date"
+	sortByName := !query.Has("sort") || (!sortBySize && !sortByDate)
+	if sortByName {
+		sort = string(SortByName)
+	} else if sortBySize {
+		sort = string(SortBySize)
+	} else if sortByDate {
+		sort = string(SortByDate)
+	}
+
 	pageData := page {
 		BreadcrumbData: util.PrepareBreadcrumb(r),
 		AllowUpload: allowUpload,
 		URL: r.URL.Path,
 		PreservedParams: h.preserveGetParams(r),
 		searchParams: searchParams{
-			FindQuery: r.URL.Query().Get("query"),
-			FindMatchCase: r.URL.Query().Get("matchcase") == "on",
-			FindRegex: r.URL.Query().Get("regex") == "on",
+			FindQuery: query.Get("query"),
+			FindMatchCase: query.Get("matchcase") == "on",
+			FindRegex: query.Get("regex") == "on",
+		},
+		sortParams: sortParams{
+			IsDesc: sortDesc,
+			Field: SortBy(sort),
 		},
 	}
 	hasQuery := len(pageData.searchParams.FindQuery) > 0
@@ -104,7 +124,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if list, err := h.prepareFileList(r.URL.Path, remoteAddr, pageData.searchParams); err != nil {
+	if list, err := h.prepareFileList(r.URL.Path, remoteAddr, pageData.searchParams, pageData.sortParams); err != nil {
 		errors.WriteError(w, r, err)
 		return
 	} else {
